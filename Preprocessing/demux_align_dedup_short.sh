@@ -9,39 +9,32 @@ export LC_ALL=C
 
 # Help string
 helps="
- usage: ./demux_align_dedup.sh [-h] -i inFastq -o outDir -s samplelist [-c cells] [-t threads] [-b barcodepattern]
- 	[-r ref] [-m mismatches] [-k known] [-d tmpdir]
+ usage: ./demux_align_dedup.sh [-h] -i inFastq -o outDir -s samplelist [-t threads] [-b barcodepattern]
+ 	[-r ref]
  Description:
   Demultiplex, run SamToFastq, Align reads using bwa mem, MergeBamAlignment recalibrate and deduplicate.
  Mandatory arguments:
   -i  inFastq multiplexed fastq
   -o  outDir	Output directory. Created if not found.
-  -c  cells Number of cells in experiment
   -s  samplelist list of samples with barcode. 1 barcode per row.
  Optional arguments:
   -h  Show this help page.
   -t  threads	Number of threads for parallelization.
   -r  index	Path to BWA index.
   		Default: '/mnt/AchTeraD/Documents/references/hg19/hg19.fa'
-  -b  barcode-pattern  Pattern of barcode (cutsite included in bc) and umi in sample. C=barcode, N=UMI
-      Default: NNNNNNNNCCCCCCCCCCCC
-  -m  mismatches Number of missmatches allowed in barcode and cutsite combined
-      Default: 1
-  -k  known  known-sites for base score recalibration
-      Default: '/mnt/AchTeraD/Documents/references/vcf-files/dbsnp-b151_GRCh37p13-all.vcf.gz'
-  -d  tmpdir
-      Default: '/mnt/AchTeraD/tmp/'
+  -b  barcode-pattern  Pattern of barcode (cutsite included in bc) and umi in sample. Must be in regex string,
+      check umi_tools manual for instructions
+      Default: '(?P<umi_1>.{8})(?P<cell_1>.{8})CATG{s<=1}'
+
 "
 
 # Default values
 threads=1
 ref="/mnt/AchTeraD/Documents/references/hg19/hg19.fa"
-barcodepattern="NNNNNNNNCCCCCCCCCCCC"
-mismatches=1
-known='/mnt/AchTeraD/Documents/references/vcf-files/dbsnp-b151_GRCh37p13-all.vcf.gz'
-tmpdir="/mnt/AchTeraD/tmp/"
+barcodepattern='(?P<umi_1>.{8})(?P<cell_1>.{8})CATG{s<=1}'
 
-while getopts ht:i:o:s:r:c:b:m:k:d: opt; do
+
+while getopts ht:i:o:s:r:c:b: opt; do
 	case $opt in
 		h)
 			echo -e "$helps\n"
@@ -88,33 +81,9 @@ while getopts ht:i:o:s:r:c:b:m:k:d: opt; do
 				exit 1
 			fi
 		;;
-    c)
-			if [ -e "$OPTARG" ]; then
-				cells=$OPTARG
-			fi
-		;;
     b)
 			if [ ! -e "$OPTARG" ]; then
 				barcodepattern=$OPTARG
-			fi
-		;;
-    m)
-			if [ -e "$OPTARG" ]; then
-				mismatches=$OPTARG
-			fi
-		;;
-    k)
-      if [ -e "$OPTARG" ]; then
-        known=$OPTARG
-			else
-				msg="Invalid -k option, file not found.\nFile: $OPTARG"
-				echo -e "$helps\n$msg"
-				exit 1
-    fi
-    ;;
-		d)
-			if [ ! -d "$OPTARG" ]; then
-				tmpdir=$OPTARG
 			fi
 		;;
     *) echo "usage: $0 [-v] [-r]" >&2
@@ -162,7 +131,7 @@ umi_tools extract -I "${in_fastq}" \
                   -S "${out_dir}/extracting/${name}_extracted.fastq.gz" \
                   -L "${out_dir}/extracting/${name}_extract.log" \
                   --extract-method=regex \
-                  --bc-pattern='(?P<umi_1>.{8})(?P<cell_1>.{8})CATG{s<=1}' \
+                  --bc-pattern="${barcodepattern}" \
                   --filter-cell-barcode \
                   --whitelist "${samplelist}" &&
 
@@ -202,9 +171,7 @@ for sample in ${samples}; do
                   --mapping-quality 30 &&
 
   echo "moving to next sample"
-  echo "${sample} done" > log.txt
 done
-echo "alignment and deduplication finished" > log.txt
 
 echo "Alignment and deduplication finished. Running quality control.."
 
@@ -216,6 +183,7 @@ find . -type f -name '*.piped.sorted.bam' | parallel -I% --max-args 1 \
 find . -type f -name '*.dedup_q30.bam' | parallel -I% --max-args 1 \
 "/home/luukharbers/alfred/bin/alfred qc -r ${ref} -o %.dedup.tsv.gz %" &&
 
+#formatting final qc files
 zgrep ^ME bamfiles/*all.tsv.gz | cut -f 2- | sed -n '1p;0~2p' > all.tsv
 zgrep ^ME bamfiles/*dedup.tsv.gz | cut -f 2- | sed -n '1p;0~2p' > dedup.tsv
 echo "All done! :)"
