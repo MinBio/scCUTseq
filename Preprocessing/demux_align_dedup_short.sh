@@ -158,25 +158,25 @@ name=$(echo "${in_fastq}" | sed 's/.fastq.gz//g' | sed 's@.*/@@')
 
 #extracting barcodes/umi's from read to header
 echo "extracting barcodes and umis from read and appending to header"
-#umi_tools extract -I "${in_fastq}" \
-#                  -S "${out_dir}/extracting/${name}_extracted.fastq.gz" \
-#                  -L "${out_dir}/extracting/${name}_extract.log" \
-#                  --extract-method=regex \
-#                  --bc-pattern='(?P<umi_1>.{8})(?P<cell_1>.{8})CATG{s<=1}' \
-#                  --filter-cell-barcode \
-#                  --whitelist "${samplelist}" &&
+umi_tools extract -I "${in_fastq}" \
+                  -S "${out_dir}/extracting/${name}_extracted.fastq.gz" \
+                  -L "${out_dir}/extracting/${name}_extract.log" \
+                  --extract-method=regex \
+                  --bc-pattern='(?P<umi_1>.{8})(?P<cell_1>.{8})CATG{s<=1}' \
+                  --filter-cell-barcode \
+                  --whitelist "${samplelist}" &&
 
 
 #demultiplex fastq
 echo "demultiplexing fastq"
 
-#/home/luukharbers/BBMap_38.76/bbmap/demuxbyname.sh  \
-#                  in="${out_dir}/extracting/${name}_extracted.fastq.gz" \
-#                  out="${out_dir}/demultiplexed/%.fastq.gz" \
-#                  outu="${out_dir}/demultiplexed/undetermined.fast.gz" \
-#                  delimiter=_ \
-#                  column=2 \
-#                  Xmx=20G &&
+/home/luukharbers/BBMap_38.76/bbmap/demuxbyname.sh  \
+                  in="${out_dir}/extracting/${name}_extracted.fastq.gz" \
+                  out="${out_dir}/demultiplexed/%.fastq.gz" \
+                  outu="${out_dir}/demultiplexed/undetermined.fast.gz" \
+                  delimiter=_ \
+                  column=2 \
+                  Xmx=20G &&
 
 #alignment
 
