@@ -142,7 +142,6 @@ echo "demultiplexing fastq"
 /home/luukharbers/BBMap_38.76/bbmap/demuxbyname.sh  \
                   in="${out_dir}/extracting/${name}_extracted.fastq.gz" \
                   out="${out_dir}/demultiplexed/%.fastq.gz" \
-                  outu="${out_dir}/demultiplexed/undetermined.fast.gz" \
                   delimiter=_ \
                   column=2 \
                   Xmx=20G &&
@@ -155,12 +154,12 @@ samples=$(find "demultiplexed/" -type f -name "*.fastq.gz" | sed 's/.fastq.gz//g
 #loop through files and go through alignment and deduplication
 for sample in ${samples}; do
 
-  #align with bwa mem
+  #align with bwa mem and sort output
   bwa mem -M -t "$threads" -R "@RG\tID:${sample}\tSM:${sample}\tPL:ILLUMINA" \
-  -p "$ref" "demultiplexed/${sample}.fastq.gz" >  "bamfiles/${sample}.piped.bam" &&
+  -p "$ref" "demultiplexed/${sample}.fastq.gz" | \
+  samtools sort -o "bamfiles/${sample}.piped.sorted.bam" &&
 
-  #sort and index
-  samtools sort -o "bamfiles/${sample}.piped.sorted.bam" "bamfiles/${sample}.piped.bam"  &&
+  #index sorted bamfile
   samtools index "bamfiles/${sample}.piped.sorted.bam" &&
 
   #deduplication using umi_tools dedup and retaining reads with >29 mapping quality
@@ -169,6 +168,8 @@ for sample in ${samples}; do
                   -S "bamfiles/${sample}.dedup_q30.bam" \
                   -L "bamfiles/${sample}.dedup_q30.log" \
                   --mapping-quality 30 &&
+
+  samtools index "bamfiles/${sample}.dedup_q30.bam" &&
 
   echo "moving to next sample"
 done
