@@ -185,7 +185,7 @@ find . -type f -name '*.dedup_q30.bam' | parallel -I% --max-args 1 \
 "/home/luukharbers/alfred/bin/alfred qc -r ${ref} -o %.dedup.tsv.gz %" &&
 
 #formatting final qc files
-zgrep ^ME bamfiles/*all.tsv.gz | cut -f 2- | sed -n '1p;0~2p' > all.tsv
-zgrep ^ME bamfiles/*dedup.tsv.gz | cut -f 2- | sed -n '1p;0~2p' > dedup.tsv
+zgrep ^ME bamfiles/*all.tsv.gz | cut -f 2- | sed -i '' -n '1p;0~2p' > all.tsv
+zgrep ^ME bamfiles/*dedup.tsv.gz | cut -f 2- | sed -i '' -n '1p;0~2p' > dedup.tsv
 echo "All done! :)"
 
