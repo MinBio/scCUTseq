@@ -1,14 +1,14 @@
 ### AneuFinder analysis script ###
 
 # set the path to bam-file directory
-inputdir <- "/mnt/AchTeraD/data/BICRO213/bamfiles_final/"
+inputdir <- "/mnt/AchTeraD/runextra/TCCGAGAT.dedup.bam"
 
 # set path to analysis output
-outputdir <- "/mnt/AchTeraD/Documents/Projects/scCUTseq/data/BICRO213/Aneufinder/MS21"
+outputdir <- "/mnt/AchTeraD/runextra/"
 dir.create(outputdir, recursive = T)
 
 # set path configuration file: NULL, mouse (GRCm38), or human (GRCh38))
-config <- "/mnt/AchTeraD/Documents/Aneufinder/config-files/
+config <- "/mnt/AchTeraD/Documents/Projects/scCUTseq/Scripts/Aneufinder/Aneufinder-dnacopy.config"
 
 ### RUN FROM HERE ###
 
