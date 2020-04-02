@@ -1,0 +1,7 @@
+input: "/mnt/AchTeraD/data/BICRO217/fastq/"
+samplename: "NZ26_S1"
+output: "/mnt/AchTeraD/data/BICRO217/NZ26/"
+ref: "/mnt/AchTeraD/Documents/references/hg19/hg19.fa"
+bc: "/mnt/AchTeraD/data/BICRO217/NZ26_NZ27_barcodes.csv"
+threads: 32
+demux: /home/luukharbers/BBMap_38.76/bbmap/demuxbyname.sh
