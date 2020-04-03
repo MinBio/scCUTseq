@@ -42,24 +42,24 @@ rule demux:
 		config['output'] + "extracted/" + sample +
 		"_extracted.fastq.gz"
 	output:
-		cmd=config['output'] +
-		"demultiplexed/\\%.\\fastq.gz",
-		xp=expand(config['output'] +
+		expand(config['output'] +
 			"demultiplexed/{bc}.fastq.gz", bc = bc.BARCODE)
 	params:
+		cmd=config['output'] +
+		"demultiplexed/\\%.\\fastq.gz",
 		path=config['demux']
 	shell:
-		"{params.path} in={input} out={output.cmd} delimiter=_ column=2 Xmx=20G"
+		"{params.path} in={input} out={params.cmd} delimiter=_ column=2 Xmx=20G"
 
 # Aligning
 rule bwa:
 	input:
-		fastq=config['output'] + "demultiplexed/{bc}.fastq.gz",
-		ref=config['ref']
+		ref=config['ref'],
+		fastq=config['output'] + "demultiplexed/{bc}.fastq.gz"
 	output:
 		temp(config['output'] + "bamfiles/{bc}.bam")
 	params:
-		rg=r"@RG\tID:" + sample + "_{bc}\tSM:" + sample + "_{bc}\tPL:ILLUMINA"
+		rg=r"@RG\tID:{bc}\tSM:{bc}\tPL:ILLUMINA"
 	threads: config['threads']
 	shell:
 		"bwa mem -M -t {threads} -R '{params.rg}' {input} | "
@@ -75,6 +75,16 @@ rule sorting:
     shell:
         "samtools sort -@ {threads} {input} -o {output}"
 
+# Index
+rule index1:
+	input:
+		config['output'] + "bamfiles/{bc}.sorted.bam"
+	output:
+		config['output'] + "bamfiles/{bc}.sorted.bam.bai"
+	threads: config['threads']
+	shell:
+		"samtools index -@ {threads} {input}"
+
 # QC pre-dedup
 rule aflred_pre:
 	input:
@@ -83,22 +93,24 @@ rule aflred_pre:
 	output:
 		config['output'] + "bamfiles/{bc}.all.tsv.gz"
 	shell:
-		"/home/luukharbers/alfred/bin/alfred qc -r {input.ref} -o {output}"
+		"/home/luukharbers/alfred/bin/alfred qc -r {input.ref} -o {output} "
+		"{input.bam}"
 
 # Dedup
 rule deduplication:
     input:
-        config['output'] + "bamfiles/{bc}.sorted.bam"
+        bam=config['output'] + "bamfiles/{bc}.sorted.bam",
+        index=config['output'] + "bamfiles/{bc}.sorted.bam.bai"
     output:
         bam=protected(config['output'] + "bamfiles/{bc}.dedup_q30.bam"),
         log=config['output'] + "bamfiles/{bc}.log"
     threads: 4
     shell:
-        "umi_tools dedup -I {input} -S {output.bam} -L {output.log} "
+        "umi_tools dedup -I {input.bam} -S {output.bam} -L {output.log} "
         "--mapping-quality 30"
 
 # Index
-rule index:
+rule index2:
 	input:
 		config['output'] + "bamfiles/{bc}.dedup_q30.bam"
 	output:
@@ -115,7 +127,8 @@ rule aflred_post:
 	output:
 		config['output'] + "bamfiles/{bc}.dedup.tsv.gz"
 	shell:
-		"/home/luukharbers/alfred/bin/alfred qc -r {input.ref} -o {output}"
+		"/home/luukharbers/alfred/bin/alfred qc -r {input.ref} -o {output} "
+		"{input.bam}"
 
 # QC summary
 rule qc:
