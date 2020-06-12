@@ -13,9 +13,9 @@ source("/mnt/AchTeraD/Documents/R-functions/save_and_plot.R")
 # Read in excel files and log file
 
 #top folder
-run_name = "BICRO198"
-top_folder = "/mnt/AchTeraD/data/BICRO198/"
-save_folder = "/mnt/AchTeraD/Documents/Projects/scCUTseq/Plots/sequencing_QC/BICRO198/"
+run_name = "BICRO221"
+top_folder = "/mnt/AchTeraD/data/BICRO221/"
+save_folder = "/mnt/AchTeraD/Documents/Projects/scCUTseq/Plots/sequencing_QC/BICRO221/NEBNext-libs/"
 
 #list libraries
 libraries = list.dirs(top_folder, recursive = F, full.names = F)
@@ -77,7 +77,7 @@ plt1 = ggplot(total_reads, aes(x = library, y = value_m, fill = variable)) +
 sample_reads[, value_m := value / 1e6]
 plt2 = ggplot(sample_reads, aes(x = library, y = value_m, color = variable)) +
   geom_boxplot(outlier.shape = NA) +
-  geom_point(size = 0.5, position = position_jitterdodge()) +
+  geom_point(size = 0.7, position = position_jitterdodge()) +
   scale_color_manual(values = brewer.pal(4, "Set1")[2:4], labels = c("reads with barcode and cutsite", "mapped", "deduplicated")) +
   labs(y = "Reads (millions)",
        x = "")  +
@@ -92,14 +92,15 @@ save_and_plot(grid.draw(plt), paste0(save_folder, "sequence_reads_QC"), width = 
 
 # Text to copy/paste into the excel sheet 
 samples_perlib = sapply(libraries, function(x) nrow(sample_reads[library == x & variable == "total"]))
+sample_prededup = sapply(libraries, function(x) sum(sample_reads[library == x & variable == "mapped"]$value))
 sample_postdedup = sapply(libraries, function(x) sum(sample_reads[library == x & variable == "deduplicated"]$value))
 over300k = sapply(libraries, function(x) nrow(sample_reads[library == x & variable == "deduplicated" & value >= 3e5]))
 under300k = sapply(libraries, function(x) nrow(sample_reads[library == x & variable == "deduplicated" & value < 3e5]))
 under50k = sapply(libraries, function(x) nrow(sample_reads[library == x & variable == "deduplicated" & value < 5e4]))
 
 # Copy paste this into excel file
-sheet_text = cbind(run = run_name, yield = paste0(format(sum(total_reads$input_reads)/1e6, digits = 0), " million"), 
-                   libraries = libraries, prededup = total_reads$output_reads, 
-                   postdedup = sample_postdedup, dup_perc = format((1 - sample_postdedup / total_reads$output_reads) * 100, digits = 4),
+sheet_text = cbind(run = run_name, yield = paste0(format(sum(total_reads[variable == "input_reads"]$value)/1e6, digits = 0), " million"), 
+                   libraries = libraries, prededup = sample_prededup, 
+                   postdedup = sample_postdedup, dup_perc = format((1 - sample_postdedup / sample_prededup) * 100, digits = 4),
                    over300k = paste0(over300k, "/", samples_perlib), under300k = paste0(under300k, "/", samples_perlib),
-                   under50k = paste0(under50k, "/", samples_perlib), succes = format(over300k / samples_perlib * 100, digits = 4))
+                   under50k = paste0(under50k, "/", samples_perlib), success = format(over300k / samples_perlib * 100, digits = 4))
