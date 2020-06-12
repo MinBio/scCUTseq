@@ -1,8 +1,8 @@
-input: "/mnt/AchTeraD/data/BICRO204/fastq/"
-samplename: "NZ19_S1"
-output: "/mnt/AchTeraD/data/BICRO204/NZ19/"
+input: "/mnt/AchTeraD/data/BICRO221/fastq/rCUTseq/"
+samplename: "MS_NZ1"
+output: "/mnt/AchTeraD/data/BICRO221/rcutseq_extracted/MS_NZ1_R1/"
 ref: "/mnt/AchTeraD/Documents/references/hg19/hg19.fa"
 refname: 'hg19'
-bc: "/mnt/AchTeraD/data/BICRO204/barcodes/96barcodes.csv"
+bc: "/mnt/AchTeraD/Documents/Projects/rCUTseq/barcode_nocs.csv"
 threads: 32
 demux: /home/luukharbers/BBMap_38.76/bbmap/demuxbyname.sh
