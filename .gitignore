@@ -1,2 +1,4 @@
 **/.snakemake
 *.config.yaml
+**/.Rhistory
+.Rhistory
