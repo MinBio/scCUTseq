@@ -15,8 +15,8 @@ rule all:
 			bc = bc.BARCODE),
 		expand(config['output'] + "bamfiles/{bc}.dedup_q30.bam.bai",
 			bc = bc.BARCODE),
-		config['output'] + "all.tsv",
-		config['output'] + "dedup.tsv"
+		config['output'] + config['samplename'] + "_all.tsv",
+		config['output'] + config['samplename'] + "_dedup.tsv"
 
 
 # Rule for extracting barcodes from read and appending them to head
@@ -138,14 +138,15 @@ rule qc:
 		expand(config['output'] + "bamfiles/{bc}.dedup.tsv.gz",
 			bc = bc.BARCODE)
 	output:
-		config['output'] + "all.tsv",
-		config['output'] + "dedup.tsv"
+		config['output'] + config['samplename'] + "_all.tsv",
+		config['output'] + config['samplename'] + "_dedup.tsv"
 	params:
-		dir=config['output']
+		directory=config['output'],
+		out=config['output'] + config['samplename'] + "_"
 	shell:
 		"""
-		zgrep ^ME {params.dir}bamfiles/*all.tsv.gz | cut -f 2- | \\
-		sed -n '1p;0~2p' > {params.dir}all.tsv
-		zgrep ^ME {params.dir}bamfiles/*dedup.tsv.gz | cut -f 2- | \\
-		sed -n '1p;0~2p' > {params.dir}dedup.tsv
+		zgrep ^ME {params.directory}bamfiles/*all.tsv.gz | cut -f 2- | \\
+		sed -n '1p;0~2p' > {params.out}all.tsv
+		zgrep ^ME {params.directory}bamfiles/*dedup.tsv.gz | cut -f 2- | \\
+		sed -n '1p;0~2p' > {params.out}dedup.tsv
 		"""
