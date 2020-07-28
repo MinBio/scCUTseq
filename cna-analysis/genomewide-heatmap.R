@@ -3,13 +3,13 @@
 # Script for 
 
 # Load/install packages
-packages = c("data.table", "pbapply", "RColorBrewer", "ggdendro", "ggrastr")
+packages = c("data.table", "pbapply", "RColorBrewer", "ggdendro", "ggrastr", "GenomicRanges")
 sapply(packages, require, character.only = T)
 source("/mnt/AchTeraD/Documents/R-functions/save_and_plot.R")
 
 # List the samples and parent directory
-run = "BICRO229"
-library = "NZ74"
+run = "BICRO231"
+library = "NZ87"
 parent_dir = "/mnt/AchTeraD/Documents/Projects/scCUTseq/Plots/Aneufinder/"
 
 # Specify binsize, always in format of '1e\\+06', '5e\\+05', etc.
@@ -36,10 +36,11 @@ files = files[grepl(binsize, files)]
 clustering_list = pblapply(files, function(cell) {
   load(cell)
   # Get name
-  name = gsub(".*\\/|.dedup.*", "", cell)
-  dt = data.table(cn = model$bins$copy.number)
-  setnames(dt, "cn", name)
-  return(dt)
+  if(!is.null(model$segments)){
+    name = gsub(".*\\/|.dedup.*", "", cell)
+    dt = data.table(cn = model$bins$copy.number)
+    setnames(dt, "cn", name)
+    return(dt)}
 }, cl = num_threads)
 
 # Bind columns
@@ -63,9 +64,12 @@ dend_plt = ggplot(segment(ddata)) +
 # Make dt for plotting heatmap
 dt.list = pblapply(files, function(cell){
   load(cell)
-  model.seg = transCoord(model[["segments"]])
-  dt = as.data.table(model.seg)
-  dt[, ID := gsub(".*\\/|.dedup.*", "", cell)]
+  if(!is.null(model$segments)){
+    model.seg = transCoord(model[["segments"]])
+    dt = as.data.table(model.seg)
+    dt[, ID := gsub(".*\\/|.dedup.*", "", cell)]
+    dt
+  }
 }, cl = num_threads)
 
 # Bind rows
