@@ -1,0 +1,171 @@
+import glob, os
+import pandas as pd
+
+# Specify config file
+configfile: "config.yaml"
+
+# Specify samples
+bc = pd.read_csv(config['bc'], sep = ",")
+sample = config['samplename']
+
+# Rule specifying output files
+rule all:
+	input:
+		expand(config['output'] + "bamfiles/{bc}.dedup_q30.bam",
+			bc = bc.BARCODE),
+		expand(config['output'] + "bamfiles/{bc}.dedup_q30.bam.bai",
+			bc = bc.BARCODE),
+		config['output'] + config['samplename'] + "_all.tsv",
+		config['output'] + config['samplename'] + "_dedup.tsv"
+
+
+# Rule for extracting barcodes from read and appending them to head
+rule demux:
+	input:
+		fastq=config['input'] + config['samplename'] + "_R1.fastq.gz",
+		barcodes=config['bc']
+	output:
+		expand(config['output'] + "demultiplexed/{bc}.fastq",
+			bc = bc.BARCODE)
+	params:
+		outdir=config['output'] + "demultiplexed/",
+		logfile=config['output'] + config['samplename'] + "_log.txt"
+	shell:
+		config['demux'] + " -f {input.fastq} -o {params.outdir} "
+		"-l {params.logfile} -b {input.barcodes}"
+
+# Gzip output of demux
+rule pigz:
+	input:
+		expand(config['output'] + "demultiplexed/{bc}.fastq",
+			bc = bc.BARCODE)
+	output:
+		expand(config['output'] + "demultiplexed/{bc}.fastq.gz",
+			bc = bc.BARCODE)
+	threads: 38
+	shell:
+		"pigz {input}"
+
+# Aligning
+rule bwa:
+	input:
+		ref=config['ref'],
+		fastq=config['output'] + "demultiplexed/{bc}.fastq.gz"
+	output:
+		temp(config['output'] + "aligned/{bc}.bam")
+	params:
+		rg=r"@RG\tID:{bc}\tSM:{bc}\tPL:ILLUMINA"
+	threads: config['threads']
+	shell:
+		"bwa mem -M -t {threads} -R '{params.rg}' {input} | "
+        "samtools sort -o {output}"
+
+# Index
+rule index1:
+	input:
+		config['output'] + "aligned/{bc}.bam"
+	output:
+		temp(config['output'] + "aligned/{bc}.bam.bai")
+	threads: config['threads']
+	shell:
+		"samtools index -@ {threads} {input}"
+
+# Get readnames of reads that mapped within cutsite range
+# and map to chr 1:22, X or Y
+rule getReadnames:
+	input:
+		bam=config['output'] + "aligned/{bc}.bam",
+		cutsites=config['cutsites']
+	output:
+		temp(config['output'] + "filtered/{bc}_readnames.txt")
+	shell:
+		config['getReads'] + " -b {input.bam} -c {input.cutsites} -o {output}"
+
+
+# Filter reads based on readname using gatk
+rule filterReads:
+	input:
+		bam=config['output'] + "aligned/{bc}.bam",
+		bai=config['output'] + "aligned/{bc}.bam.bai",
+		readnames=config['output'] + "filtered/{bc}_readnames.txt"
+	output:
+		bam=temp(config['output'] + "filtered/{bc}_filtered.bam"),
+		bai=temp(config['output'] + "filtered/{bc}_filtered.bai"),
+		log=config['output'] + "logs/{bc}-cutsite-filter.log"
+	shell:
+		"""
+		gatk FilterSamReads -I {input.bam} -O {output.bam} \\
+		-RLF {input.readnames} --FILTER includeReadList --CREATE_INDEX true
+
+		echo "pre cutsite-distance filter reads: " \\
+		$(samtools view -c {input.bam}) > {output.log}
+
+		echo "post cutsite-distance filter reads: " \\
+		$(samtools view -c {output.bam}) >> {output.log}
+		"""
+
+# QC pre-dedup
+rule aflred_pre:
+	input:
+		bam=config['output'] + "filtered/{bc}_filtered.bam",
+		ref=config['ref']
+	output:
+		temp(config['output'] + "bamfiles/{bc}.all.tsv.gz")
+	shell:
+		config['alfred'] + " qc -r {input.ref} -o {output} "
+		"{input.bam}"
+
+# Dedup
+rule deduplication:
+    input:
+        bam=config['output'] + "filtered/{bc}_filtered.bam",
+        index=config['output'] + "filtered/{bc}_filtered.bai"
+    output:
+        bam=protected(config['output'] + "bamfiles/{bc}.dedup_q30.bam"),
+        log=config['output'] + "logs/{bc}.log"
+    threads: 4
+    shell:
+        "umi_tools dedup -I {input.bam} -S {output.bam} -L {output.log} "
+        "--mapping-quality 30"
+
+# Index
+rule index2:
+	input:
+		config['output'] + "bamfiles/{bc}.dedup_q30.bam"
+	output:
+		config['output'] + "bamfiles/{bc}.dedup_q30.bam.bai"
+	threads: config['threads']
+	shell:
+		"samtools index -@ {threads} {input}"
+
+# QC post-dedup
+rule aflred_post:
+	input:
+		bam=config['output'] + "bamfiles/{bc}.dedup_q30.bam",
+		ref=config['ref']
+	output:
+		temp(config['output'] + "bamfiles/{bc}.dedup.tsv.gz")
+	shell:
+		config['alfred'] + " qc -r {input.ref} -o {output} "
+		"{input.bam}"
+
+# QC summary
+rule qc:
+	input:
+		expand(config['output'] + "bamfiles/{bc}.all.tsv.gz",
+			bc = bc.BARCODE),
+		expand(config['output'] + "bamfiles/{bc}.dedup.tsv.gz",
+			bc = bc.BARCODE)
+	output:
+		protected(config['output'] + config['samplename'] + "_all.tsv"),
+		protected(config['output'] + config['samplename'] + "_dedup.tsv")
+	params:
+		directory=config['output'],
+		out=config['output'] + config['samplename'] + "_"
+	shell:
+		"""
+		zgrep ^ME {params.directory}bamfiles/*all.tsv.gz | cut -f 2- | \\
+		sed -n '1p;0~2p' > {params.out}all.tsv
+		zgrep ^ME {params.directory}bamfiles/*dedup.tsv.gz | cut -f 2- | \\
+		sed -n '1p;0~2p' > {params.out}dedup.tsv
+		"""

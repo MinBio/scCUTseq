@@ -1,0 +1,20 @@
+# Sample related
+input: "/mnt/AchTeraD/data/BICRO232/fastq/"
+samplename: "NZ85_S2"
+output: "/mnt/AchTeraD/data/BICRO232/NZ85_new/"
+
+# Semi-static
+bc: "/mnt/AchTeraD/data/BICRO205+206/MS18_barcodes.txt"
+cutsites: "/mnt/AchTeraD/Documents/Projects/scCUTseq/cutsite-distribution/hg19-cutsites_fixed.bed"
+
+# References
+ref: "/mnt/AchTeraD/Documents/references/hg19/hg19.fa"
+refname: 'hg19'
+
+# Tools
+demux: "/mnt/AchTeraD/Documents/Projects/scCUTseq/Scripts/preprocessing-pipeline/demultiplex/demultiplex_withcython.py"
+getReads: "/mnt/AchTeraD/Documents/Projects/scCUTseq/Scripts/preprocessing-pipeline/Extract_readnames_nearCutsites.R"
+alfred: "/home/luukharbers/alfred/bin/alfred"
+
+# Threads
+threads: 32
