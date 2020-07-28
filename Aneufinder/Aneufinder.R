@@ -1,11 +1,12 @@
 ### AneuFinder analysis script ###
-require(AneuFinder)
+library(AneuFinder)
+library(GenomeInfoDb)
 
 # set the path to bam-file directory
-inputdir <- "/mnt/AchTeraD/data/BICRO229/NEB/"
+inputdir <- "/mnt/AchTeraD/data/BICRO230/NZ84/bamfiles/"
 
 # set path to analysis output
-outputdir <- "/mnt/AchTeraD/Documents/Projects/scCUTseq/Plots/Aneufinder/BICRO229/NZ74_NEB/"
+outputdir <- "/mnt/AchTeraD/Documents/Projects/scCUTseq/Plots/Aneufinder/BICRO230/NZ84_new/"
 dir.create(outputdir, recursive = T)
 
 # set path configuration file: NULL, mouse (GRCm38), or human (GRCh38))

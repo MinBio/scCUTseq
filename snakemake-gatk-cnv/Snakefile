@@ -1,4 +1,5 @@
-import glob, os, h5py, pandas
+import glob, os
+import pandas as pd
 
 # Specify config file
 configfile: "config.yaml"
@@ -8,6 +9,8 @@ tumors = glob.glob(config['tumor_dir'] + "*.bam")
 tumors = [os.path.basename(os.path.splitext(tumor)[0]) for tumor in tumors]
 normals = glob.glob(config['normal_dir'] + "*.bam")
 normals = [os.path.basename(os.path.splitext(normal)[0]) for normal in normals]
+annotation = pd.read_csv(config['annotation'], sep = "\t")
+directory = config['dir'] + config['sample'] + "/" + config['binsize'] + "/"
 
 # Output formats for plots and models
 plotformats = [
@@ -21,177 +24,172 @@ modelformats = [
 	"modelFinal.cr.param", "modelFinal.seg"
 	]
 
+# Get list of patient IDs
+patient_ids = annotation.ID[annotation.BARCODE.isin(expand("{tumor}",
+													tumor = tumors))]
+
 # Rule all for specifying end-goal files
 rule all:
 	input:
-		pon=config['dir'] + "pon.hdf5",
-		models=expand(config['dir'] + "model_tumor/{tumor}.called.seg",
-			tumor = tumors)
+		pon=config['pon_dir'] + config['binsize'] + "_pon.hdf5",
+		models=expand(directory + "model_tumor/{tumor}.called.seg",
+			tumor = tumors),
+		rds=config['rdsdir'] + config['sample'] + "_" +
+			config['binsize'] + "_gatk-cnv.rds",
+		plots=expand(config['plotdir'] + config['sample'] + "/" +
+			config['binsize'] + "/{patient_id}.png", patient_id = patient_ids)
 
 # Creating interval list
 rule CreateIntervals:
 	input:
 		ref=config['ref']
 	output:
-		config['dir'] + config['binsize'] + "-bp.interval_list"
+		directory + config['binsize'] + "-bp.interval_list"
 	params:
-		binsize=int(float(config['binsize']))
+		binsize=int(float(config['binsize'])),
+		gatk=config['gatk']
 	threads: 1
 	shell:
-		"gatk PreprocessIntervals -R {input.ref} --bin-length {params.binsize} "
+		"{params.gatk} PreprocessIntervals -R {input.ref} "
+		"--bin-length {params.binsize} "
 		"--interval-merging-rule OVERLAPPING_ONLY --padding 0 -O {output}"
 
 # Annotating interval list
 rule CreateAnnotatedIntervals:
 	input:
 		ref=config['ref'],
-		interval=config['dir'] + config['binsize'] + "-bp.interval_list"
+		interval=directory + config['binsize'] + "-bp.interval_list"
 	output:
-		config['dir'] + config['binsize'] + "-bp_annot.interval_list"
+		directory + config['binsize'] + "-bp_annot.interval_list"
 	threads: 1
+	params:
+		gatk=config['gatk']
 	shell:
-		"gatk AnnotateIntervals -R {input.ref} -L {input.interval} "
+		"{params.gatk} AnnotateIntervals -R {input.ref} -L {input.interval} "
 		"--interval-merging-rule OVERLAPPING_ONLY -O {output}"
 
 # Collecting normal read counts
 rule CollectNormalCounts:
 	input:
 		bam=config['normal_dir'] + "{normal}.bam",
-		interval=config['dir'] + config['binsize'] + "-bp.interval_list"
+		interval=directory + config['binsize'] + "-bp.interval_list"
 	output:
-		config['dir'] + "readcounts-normal/{normal}_counts.hdf5"
-	threads: 3
+		directory + "readcounts-normal/{normal}_counts.hdf5"
+	threads: 4
+	params:
+		gatk=config['gatk']
 	shell:
-		"gatk CollectReadCounts -I {input.bam} -L {input.interval} "
+		"{params.gatk} CollectReadCounts -I {input.bam} -L {input.interval} "
 		"--interval-merging-rule OVERLAPPING_ONLY -O {output}"
 
 # Create PoN
-poncounts = expand(config['dir'] + "readcounts-normal/{normal}_counts.hdf5",
+poncounts = expand(directory + "readcounts-normal/{normal}_counts.hdf5",
 	normal = normals)
 
 rule CreatePON:
 	input:
-		counts=expand(config['dir'] + "readcounts-normal/{normal}_counts.hdf5",
+		counts=expand(directory + "readcounts-normal/{normal}_counts.hdf5",
 			normal = normals),
-		interval=config['dir'] + config['binsize'] + "-bp_annot.interval_list"
+		interval=directory + config['binsize'] + "-bp_annot.interval_list"
 	output:
-		config['dir'] + "pon.hdf5"
+		config['pon_dir'] + config['binsize'] + "_pon.hdf5"
 	params:
-		poncounts=["-I " + x for x in poncounts]
-	threads: config['threads']
+		poncounts=["-I " + x for x in poncounts],
+		gatk=config['gatk']
+	threads: int(config['threads'] / 2)
 	shell:
-		"gatk CreateReadCountPanelOfNormals {params.poncounts} -O {output} "
-		"--minimum-interval-median-percentile 5.0 "
-		" --conf 'spark.executor.cores={threads}'"
+		"{params.gatk} CreateReadCountPanelOfNormals {params.poncounts} "
+		"-O {output} --minimum-interval-median-percentile 15.0 "
+		" --conf 'spark.executor.cores={threads}' "
+		"--annotated-intervals {input.interval}" # GC correction
 		# Find a fix to include GC correction..
 
 # Collecting tumor read counts
 rule collectTumorCounts:
 	input:
 		bam=config['tumor_dir'] + "{tumor}.bam",
-		interval=config['dir'] + config['binsize'] + "-bp.interval_list"
+		interval=directory + config['binsize'] + "-bp.interval_list"
 	output:
-		config['dir'] + "readcounts-tumor/{tumor}_counts.hdf5"
-	threads: 3
+		directory + "readcounts-tumor/{tumor}_counts.hdf5"
+	threads: 4
+	params:
+		gatk=config['gatk']
 	shell:
-		"gatk CollectReadCounts -I {input.bam} -L {input.interval} "
+		"{params.gatk} CollectReadCounts -I {input.bam} -L {input.interval} "
 		"--interval-merging-rule OVERLAPPING_ONLY -O {output}"
 
 # Denoise tumor profiles using PON
 rule DenoiseTumors:
 	input:
-		counts=config['dir'] + "readcounts-tumor/{tumor}_counts.hdf5",
-		pon=config['dir'] + "pon.hdf5"
+		counts=directory + "readcounts-tumor/{tumor}_counts.hdf5",
+		pon=config['pon_dir'] + config['binsize'] + "_pon.hdf5"
 	output:
-		stand=config['dir'] + "readcounts-tumor/{tumor}_standardizedCR.tsv",
-		denoised=config['dir'] + "readcounts-tumor/{tumor}_denoisedCR.tsv"
-	threads: 3
+		stand=directory + "readcounts-tumor/{tumor}_standardizedCR.tsv",
+		denoised=directory + "readcounts-tumor/{tumor}_denoisedCR.tsv"
+	threads: 4
 	params:
-		java="--java-options -Xmx12G"
-	run:
-		df = h5py.File(input.counts, "r")
-		data = df.get('counts/values')
-		pd_data = pandas.DataFrame(data)
-		if pd_data.median(axis = 1).values[0] > 0:
-			shell("gatk {params.java} DenoiseReadCounts -I {input.counts} "
-				  "--count-panel-of-normals {input.pon} "
-				  "--standardized-copy-ratios {output.stand} "
-				  "--denoised-copy-ratios {output.denoised}")
-		else:
-			shell("touch {output.stand}; touch {output.denoised}")
-
-
-# Generate CNV plots
-"""
-rule PlotDenoisedCopyRatios:
-	input:
-		stand=config['dir'] + "readcounts-tumor/{tumor}_standardizedCR.tsv",
-		denoised=config['dir'] + "readcounts-tumor/{tumor}_denoisedCR.tsv",
-		dic=config['dictionary']
-	output:
-		expand(config['dir'] + "plots_tumor/{{tumor}}.{ext}",
-			ext = plotformats)
-	params:
-		directory=config['dir'] + "/plots_tumor/",
-		prefix="{tumor}"
-	threads: 3
+		java="--java-options -Xmx12G",
+		gatk=config['gatk']
 	shell:
-		"gatk PlotDenoisedCopyRatios --standardized-copy-ratios {input.stand} "
-		"--denoised-copy-ratios {input.denoised} --sequence-dictionary "
-		"{input.dic} --output {params.directory} "
-		"--output-prefix {params.prefix}"
-"""
+		"{params.gatk} {params.java} DenoiseReadCounts -I {input.counts} "
+		"--count-panel-of-normals {input.pon} "
+		"--standardized-copy-ratios {output.stand} "
+		"--denoised-copy-ratios {output.denoised}"
+
 # Model tumor segments
 rule ModelTumorSegments:
 	input:
-		config['dir'] + "readcounts-tumor/{tumor}_denoisedCR.tsv"
+		directory + "readcounts-tumor/{tumor}_denoisedCR.tsv"
 	output:
-		config['dir'] + "model_tumor/{tumor}.cr.seg",
+		directory + "model_tumor/{tumor}.cr.seg",
 	params:
 		java="--java-options -Xmx12G",
+		gatk=config['gatk'],
 		prefix="{tumor}",
-		directory=config['dir'] + "model_tumor/",
+		directory=directory + "model_tumor/",
 		smoothing="--number-of-changepoints-penalty-factor 1 "
 				  "--smoothing-credible-interval-threshold-copy-ratio 1"
-	threads: 2
-	run:
-		if os.stat(str(input)).st_size > 0:
-			shell("gatk {params.java} ModelSegments --denoised-copy-ratios "
-				  "{input} --output {params.directory} --output-prefix "
-				  "{params.prefix} {params.smoothing}")
-		else:
-			shell("touch {output}")
+	threads: 4
+	shell:
+		"{params.gatk} {params.java} ModelSegments --denoised-copy-ratios "
+		"{input} --output {params.directory} --output-prefix {params.prefix} "
+		"{params.smoothing}"
 
 # Call tumor segments
 rule CallTumorSegments:
 	input:
-		config['dir'] + "model_tumor/{tumor}.cr.seg"
+		directory + "model_tumor/{tumor}.cr.seg"
 	output:
-		config['dir'] + "model_tumor/{tumor}.called.seg"
-	threads: 2
-	run:
-		if os.stat(str(input)).st_size > 0:
-			shell("gatk CallCopyRatioSegments -I {input} -O {output}")
-		else:
-			shell("touch {output}")
-
-# Plot tumor segments
-"""
-rule PlotTumorSegments:
-	input:
-		denoised=config['dir'] + "readcounts-tumor/{tumor}_denoisedCR.tsv",
-		segments=config['dir'] + "model_tumor/{tumor}.modelFinal.seg",
-		dic=config['dictionary']
-	output:
-		expand(config['dir'] + "plots_tumor_segments/{{tumor}}.{ext}",
-			ext = plotformats)
+		directory + "model_tumor/{tumor}.called.seg"
+	threads: 4
 	params:
-		directory=config['dir'] + "plots_tumor/",
-		prefix="{tumor}"
-	threads: 3
+		gatk=config['gatk']
 	shell:
-		"gatk PlotModeledSegments --denoised-copy-ratios {input.denoised} "
-		"--segments {input.segments} --sequence-dictionary {input.dic} "
-		"--minimum-contig-length 46709983 -O {params.directory} --output-prefix"
-		" {params.prefix}"
-"""
+		"{params.gatk} CallCopyRatioSegments -I {input} -O {output}"
+
+
+# Create and save rds files and plot with R script
+rule rdsAndPlot:
+	input:
+		expand(directory + "model_tumor/{tumor}.called.seg",
+			tumor = tumors)
+	output:
+		rds=config['rdsdir'] + config['sample'] + "_" +
+			config['binsize'] + "_gatk-cnv.rds",
+		plots=expand(config['plotdir'] + config['sample'] + "/" +
+			config['binsize'] + "/{patient_id}.png", patient_id = patient_ids)
+	params:
+		dots=directory + "readcounts-tumor/",
+		calls=directory + "model_tumor/",
+		rdsfile=config['rdsdir'] + config['sample'] + "_" +
+				config['binsize'] + "_gatk-cnv.rds",
+		plotdir=config['plotdir'] + config['sample'] + "/" +
+				config['binsize'] + "/",
+		annotation=config['annotation'],
+		binsize=config['binsize'],
+		threads=config['threads']
+	threads: config['threads']
+	shell:
+		config['rdsplot'] + " -p --dots {params.dots} --calls {params.calls} "
+		"--annotation {params.annotation} --rdspath {params.rdsfile} --plotdir "
+		"{params.plotdir} --binsize {params.binsize} --threads {params.threads}"

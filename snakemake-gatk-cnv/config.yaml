@@ -1,7 +1,20 @@
-dir: "/mnt/AchTeraD/Documents/Projects/scCUTseq/gatk-cnv-output/NZ27_hs/"
-tumor_dir: "/mnt/AchTeraD/data/BICRO217/NZ27/bamfiles_hs/"
-normal_dir: "/mnt/AchTeraD/data/Aneufinder_refs/bamfiles_imr90_hq/"
-binsize: "1e5"
+## Directories
+pon_dir: "/mnt/AchTeraD/Documents/Projects/scCUTseq/data/gatk-cnv/pon/"
+tumor_dir: "/mnt/AchTeraD/data/BICRO230/NZ85/bamfiles_hq/"
+normal_dir: "/mnt/AchTeraD/data/BICRO230/NZ84/bamfiles_hq/"
+
+## Sample specific
+sample: "BICRO230_NZ85vs84"
+binsize: "5e5"
+annotation: "/mnt/AchTeraD/data/96_NlaIII-barcodes_annot.csv"
+
+## Static variables
+dir: "/mnt/AchTeraD/Documents/Projects/scCUTseq/data/gatk-cnv/"
+rdsdir: "/mnt/AchTeraD/Documents/Projects/scCUTseq/data/rds-files/"
+plotdir: "/mnt/AchTeraD/Documents/Projects/scCUTseq/Plots/profile-plots/"
 ref: "/mnt/AchTeraD/Documents/references/hg19/hg19.fa"
 dictionary: "/mnt/AchTeraD/Documents/references/hg19/hg19.dict"
-threads: 16
+gatk: "/home/luukharbers/gatk-4.1.8.0/gatk"
+rdsplot: "/mnt/AchTeraD/Documents/Projects/phaseII-clinicaltrial/Scripts/generate-rds_and_plot-profiles.R"
+
+threads: 32

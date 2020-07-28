@@ -13,9 +13,9 @@ source("/mnt/AchTeraD/Documents/R-functions/save_and_plot.R")
 # Read in excel files and log file
 
 #top folder
-run_name = "BICRO229"
-top_folder = "/mnt/AchTeraD/data/BICRO229/NEB"
-save_folder = "/mnt/AchTeraD/Documents/Projects/scCUTseq/Plots/sequencing_QC/BICRO229_NEB/"
+run_name = "BICRO232"
+top_folder = "/mnt/AchTeraD/data/BICRO232/"
+save_folder = "/mnt/AchTeraD/Documents/Projects/scCUTseq/Plots/sequencing_QC/BICRO232/"
 
 #list libraries
 libraries = list.dirs(top_folder, recursive = F, full.names = F)
@@ -30,7 +30,7 @@ for(library in libraries) {
   
   #read in log file with input and output reads after extraction
   extracted = list.files(paste0(top_folder, library), recursive = T, pattern = ".*extracted.log", full.names = T)
-  all_reads = fread(extracted, select = 2)
+    all_reads = fread(extracted, select = 2)
   
   #get input reads
   input_reads = all_reads[[1]][grepl("Input", all_reads[[1]])]
