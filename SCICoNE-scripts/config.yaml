@@ -1,0 +1,10 @@
+samplename: "BICRO235_NZ120"
+matrix: "/mnt/AchTeraD/Documents/Projects/scCUTseq/hmmcopy/input_matrix/BICRO235_NZ120-500kb-inputmatrix.txt"
+
+
+# Run parameters
+n_bins: 5439
+
+# bins
+breakpoints_bin: "/home/luukharbers/SCICoNE/build/breakpoint_detection"
+infertree_bin: "/home/luukharbers/SCICoNE/build/inference"
