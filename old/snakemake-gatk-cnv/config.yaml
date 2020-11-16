@@ -1,0 +1,7 @@
+dir: "/mnt/AchTeraD/Documents/Projects/scCUTseq/gatk-cnv-output/NZ27_hs/"
+tumor_dir: "/mnt/AchTeraD/data/BICRO217/NZ27/bamfiles_hs/"
+normal_dir: "/mnt/AchTeraD/data/Aneufinder_refs/bamfiles_imr90_hq/"
+binsize: "1e5"
+ref: "/mnt/AchTeraD/Documents/references/hg19/hg19.fa"
+dictionary: "/mnt/AchTeraD/Documents/references/hg19/hg19.dict"
+threads: 16
