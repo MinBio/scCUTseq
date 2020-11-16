@@ -8,14 +8,13 @@ sapply(packages, require, character.only = T)
 source("/mnt/AchTeraD/Documents/R-functions/save_and_plot.R")
 
 #top folder
-run_name = "BICRO237"
-top_folder = "/mnt/AchTeraD/data/BICRO237/"
-save_folder = "/mnt/AchTeraD/Documents/Projects/scCUTseq/Plots/sequencing_QC/BICRO237/"
+run_name = "BICRO246"
+top_folder = "/mnt/AchTeraD/data/BICRO246/"
+save_folder = "/mnt/AchTeraD/Documents/Projects/scCUTseq/Plots/sequencing_QC/BICRO246/"
 
 #list libraries
 libraries = list.dirs(top_folder, recursive = F, full.names = F)
 libraries = libraries[grepl("NZ|MS", libraries)] #can just change the grepl expression in most cases to match library directories
-
 
 #get input and output reads after barcode/cutsite extraction
 total_reads = data.table(library = character(), variable = numeric(), value = numeric())
@@ -40,20 +39,22 @@ for(library in libraries) {
   # Get deduplicated reads
   dedup_file = list.files(paste0(top_folder, library), pattern = "dedup.tsv", full.names = T)
   dedup = fread(dedup_file)
-  mapped_dedup = sum(dedup[[9]])
+  mapped_dedup = sum(dedup[[11]])
+
   
 
   # Make dt for total reads
-  total = data.table(library = library, "total reads" = counts$V2[1], "with barcode" = counts$V2[2], 
-                     "in cutsite range" = sum(cutsite_dt[V1 == "mapped in cutsite range"]$V2), 
-                     deduplicated = mapped_dedup)
+  total = data.table(library = library, "total reads" = counts$V2[1], "with barcode" = counts$V2[2],
+                     "in cutsite range" = sum(cutsite_dt[V1 == "mapped in cutsite range"]$V2),
+                     deduplicated = mapped_dedup )
+
   total = melt(total, id.vars = "library")
   
   # reads to millions and set factors
   total[, value := value / 1e6]
   
   # Make dt for per sample reads
-  dedup_dt = dedup[, c(9, 1)]
+  dedup_dt = dedup[, c(11, 1)]
   dedup_dt[, V1 := "deduplicated"]
   setnames(dedup_dt, c("V2", "sample", "V1"))
   
@@ -70,6 +71,10 @@ for(library in libraries) {
 
 # Set factor levels for total_reads
 total_reads[, variable := factor(variable, levels = c("total reads", "with barcode", "in cutsite range", "deduplicated"))]
+
+# # # IF PAIRED RUN THIS
+# total_reads[variable == "deduplicated", value := value / 2]
+# sample_reads[V1 == "deduplicated", V2 := V2 / 2]
 
 # Plot
 plt1 = ggplot(total_reads, aes(x = library, y = value, fill = variable)) +
@@ -98,7 +103,7 @@ save_and_plot(grid.draw(plt), paste0(save_folder, "sequence_reads_QC"), width = 
 
 # Get other statistics for excel sheet
 samples_perlib = sapply(libraries, function(x) nrow(sample_reads[library == x & V1 == "mapped"]))
-sample_prededup = sapply(libraries, function(x) sum(sample_reads[library == x & V1 == "mapped"]$V2))
+sample_prededup = sapply(libraries, function(x) sum(sample_reads[library == x & V1 == "mapped in cutsite range"]$V2))
 sample_postdedup = sapply(libraries, function(x) sum(sample_reads[library == x & V1 == "deduplicated"]$V2))
 over300k = sapply(libraries, function(x) nrow(sample_reads[library == x & V1 == "deduplicated" & V2 >= 0.5]))
 under300k = sapply(libraries, function(x) nrow(sample_reads[library == x & V1 == "deduplicated" & V2 < 0.3]))
@@ -107,7 +112,7 @@ under50k = sapply(libraries, function(x) nrow(sample_reads[library == x & V1 == 
 # Copy paste this into excel file
 sheet_text = cbind(run = run_name, yield = paste0(format(sum(total_reads[variable == "total reads"]$value), digits = 0), " million"), 
                    libraries = libraries, prededup = sample_prededup, 
-                   postdedup = sample_postdedup, dup_perc = format((1 - sample_postdedup / sample_prededup) * 100, digits = 4),
+                   postdedup = sample_postdedup, dup_perc = format((1 - sample_postdedup / sample_prededup ) * 100, digits = 4),
                    over300k = paste0(over300k, "/", samples_perlib), under300k = paste0(under300k, "/", samples_perlib),
                    under50k = paste0(under50k, "/", samples_perlib), success = format(over300k / samples_perlib * 100, digits = 4))
 write.table(sheet_text, paste0(top_folder, "library_overview.tsv"), quote = F, row.names = F, col.names = T, sep = "\t")

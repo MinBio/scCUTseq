@@ -10,8 +10,6 @@ for(package in packages){
 }
 source("/mnt/AchTeraD/Documents/R-functions/save_and_plot.R")
 
-# Read in excel files and log file
-
 #top folder
 run_name = "BICRO232"
 top_folder = "/mnt/AchTeraD/data/BICRO232/"
@@ -20,6 +18,7 @@ save_folder = "/mnt/AchTeraD/Documents/Projects/scCUTseq/Plots/sequencing_QC/BIC
 #list libraries
 libraries = list.dirs(top_folder, recursive = F, full.names = F)
 libraries = libraries[grepl("NZ|MS", libraries)] #can just change the grepl expression in most cases to match library directories
+
 
 #get input and output reads after barcode/cutsite extraction
 total_reads = data.table(library = character(), input_reads = numeric(), output_reads = numeric())
