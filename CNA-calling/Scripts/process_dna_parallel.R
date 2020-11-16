@@ -158,8 +158,8 @@ data = data %>% ungroup %>%
     normal.gc=map2(filtered, gk.gc, ~apply(.x, 2, function(x){ lowess.gc(.y[[1]], x+1/mean(x+1)) })),
     lrr=map(normal.gc, ~log2(.x))
   )
-for(i in 1:length(normal)) {
-  data$lrr[[1]][indices[[i]], ] - data$lrr[[1]][indices[[i]], ] - normal$adjust[i]
+for(i in 1:length(indices)) {
+  data$lrr[[1]][indices[[i]], ] = data$lrr[[1]][indices[[i]], ] - normal$adjust[i]
 }
 
 cat("[",run,"] Finished normalization\n")
