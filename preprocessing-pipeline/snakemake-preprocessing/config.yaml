@@ -1,18 +1,24 @@
 # Sample related
-input: "/mnt/AchTeraD/data/BICRO232/fastq/"
-samplename: "NZ85_S2"
-output: "/mnt/AchTeraD/data/BICRO232/NZ85_new/"
+input: "/mnt/AchTeraD/data/BICRO246/fastq/"
+samplename: "MS74_S1"
+output: "/mnt/AchTeraD/data/BICRO246/MS74/"
+paired: False
+lanesplit: True
 
 # Semi-static
-bc: "/mnt/AchTeraD/data/BICRO205+206/MS18_barcodes.txt"
+bc: "/mnt/AchTeraD/data/BICRO246/barcodes.txt"
 cutsites: "/mnt/AchTeraD/Documents/Projects/scCUTseq/cutsite-distribution/hg19-cutsites_fixed.bed"
+mismatches: 2
+barcode_length: 11
+read_length: 56 # After removing barcodes etc 56 // 130
 
 # References
 ref: "/mnt/AchTeraD/Documents/references/hg19/hg19.fa"
 refname: 'hg19'
 
 # Tools
-demux: "/mnt/AchTeraD/Documents/Projects/scCUTseq/Scripts/preprocessing-pipeline/demultiplex/demultiplex_withcython.py"
+demux: "python /mnt/AchTeraD/Documents/Projects/scCUTseq/Scripts/preprocessing-pipeline/demultiplex/demultiplex_withcython.py"
+combineLogs: "/mnt/AchTeraD/Documents/Projects/scCUTseq/Scripts/preprocessing-pipeline/combine_logfiles.R"
 getReads: "/mnt/AchTeraD/Documents/Projects/scCUTseq/Scripts/preprocessing-pipeline/Extract_readnames_nearCutsites.R"
 alfred: "/home/luukharbers/alfred/bin/alfred"
 

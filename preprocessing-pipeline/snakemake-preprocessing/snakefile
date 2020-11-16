@@ -204,7 +204,7 @@ else:
                     bc = bc.iloc[:,0])),
                 unassigned1=temp(config['output'] + "demultiplexed/unassigned_R1.fastq"),
                 unassigned2=temp(config['output'] + "demultiplexed/unassigned_R2.fastq"),
-                logfile=temp(config['output'] + config['samplename'] + "_log.txt")
+                logfile=config['output'] + config['samplename'] + "_log.txt"
             params:
                 outdir=config['output'] + "demultiplexed/",
                 mismatches=config['mismatches'],
@@ -260,7 +260,7 @@ else:
                 fastq=temp(expand(config['output'] + "demultiplexed/{bc}.fastq",
                     bc = bc.iloc[:,0])),
                 unassigned=temp(config['output'] + "demultiplexed_/unassigned.fastq"),
-                logfile=temp(config['output'] + config['samplename'] + "_log.txt")
+                logfile=config['output'] + config['samplename'] + "_log.txt"
             params:
                 outdir=config['output'] + "demultiplexed/",
                 mismatches=config['mismatches'],
@@ -307,31 +307,55 @@ rule getReads:
         cutsites=config['cutsites']
     output:
         temp(config['output'] + "bamfiles/{bc}_readnames.txt")
+    params:
+        readlength = config["read_length"]
     shell:
-        config['getReads'] + " -b {input.bam} -c {input.cutsites} -o {output}"
+        config['getReads'] + " -b {input.bam} -c {input.cutsites} -o {output} --readlength {params}"
 
 
 # Filter reads based on readname using gatk
-rule filterReads:
-    input:
-        bam=config['output'] + "bamfiles/{bc}.bam",
-        bai=config['output'] + "bamfiles/{bc}.bam.bai",
-        readnames=config['output'] + "bamfiles/{bc}_readnames.txt"
-    output:
-        bam=temp(config['output'] + "bamfiles/{bc}_filtered.bam"),
-        bai=temp(config['output'] + "bamfiles/{bc}_filtered.bai"),
-        log=config['output'] + "logs/{bc}-cutsite-filter.log"
-    shell:
-        """
-        gatk FilterSamReads -I {input.bam} -O {output.bam} \\
-        -RLF {input.readnames} --FILTER includeReadList --CREATE_INDEX true &&
+if config['paired']:
+    rule filterReads:
+        input:
+            bam=config['output'] + "bamfiles/{bc}.bam",
+            bai=config['output'] + "bamfiles/{bc}.bam.bai",
+            readnames=config['output'] + "bamfiles/{bc}_readnames.txt"
+        output:
+            bam=temp(config['output'] + "bamfiles/{bc}_filtered.bam"),
+            bai=temp(config['output'] + "bamfiles/{bc}_filtered.bai"),
+            log=config['output'] + "logs/{bc}-cutsite-filter.log"
+        shell:
+            """
+            gatk FilterSamReads -I {input.bam} -O {output.bam} \\
+            -RLF {input.readnames} --FILTER includeReadList --CREATE_INDEX true &&
 
-        echo "pre cutsite-distance filter reads: " \\
-        $(samtools view -c {input.bam}) > {output.log}
+            echo "pre cutsite-distance filter reads: " \\
+            $(samtools view -c -f67 {input.bam}) > {output.log}
 
-        echo "post cutsite-distance filter reads: " \\
-        $(samtools view -c {output.bam}) >> {output.log}
-        """
+            echo "post cutsite-distance filter reads: " \\
+            $(samtools view -c -f67 {output.bam}) >> {output.log}
+            """
+else:
+    rule filterReads:
+        input:
+            bam=config['output'] + "bamfiles/{bc}.bam",
+            bai=config['output'] + "bamfiles/{bc}.bam.bai",
+            readnames=config['output'] + "bamfiles/{bc}_readnames.txt"
+        output:
+            bam=temp(config['output'] + "bamfiles/{bc}_filtered.bam"),
+            bai=temp(config['output'] + "bamfiles/{bc}_filtered.bai"),
+            log=config['output'] + "logs/{bc}-cutsite-filter.log"
+        shell:
+            """
+            gatk FilterSamReads -I {input.bam} -O {output.bam} \\
+            -RLF {input.readnames} --FILTER includeReadList --CREATE_INDEX true &&
+
+            echo "pre cutsite-distance filter reads: " \\
+            $(samtools view -c -F 4 {input.bam}) > {output.log}
+
+            echo "post cutsite-distance filter reads: " \\
+            $(samtools view -c -F 4 {output.bam}) >> {output.log}
+            """
 
 # QC pre-dedup
 rule aflred_pre:
@@ -360,17 +384,17 @@ if config['paired']:
             "--mapping-quality 30 --paired && samtools index -@ {threads} {output.bam}"
 else:
     rule deduplication:
-    input:
-        bam=config['output'] + "bamfiles/{bc}_filtered.bam",
-        index=config['output'] + "bamfiles/{bc}_filtered.bai"
-    output:
-        bam=protected(config['output'] + "bamfiles/{bc}.dedup_q30.bam"),
-        bai=config['output'] + "bamfiles/{bc}.dedup_q30.bam.bai",
-        log=config['output'] + "logs/{bc}.log"
-    threads: 4
-    shell:
-        "umi_tools dedup -I {input.bam} -S {output.bam} -L {output.log} "
-        "--mapping-quality 30 && samtools index -@ {threads} {output.bam}"
+        input:
+            bam=config['output'] + "bamfiles/{bc}_filtered.bam",
+            index=config['output'] + "bamfiles/{bc}_filtered.bai"
+        output:
+            bam=protected(config['output'] + "bamfiles/{bc}.dedup_q30.bam"),
+            bai=config['output'] + "bamfiles/{bc}.dedup_q30.bam.bai",
+            log=config['output'] + "logs/{bc}.log"
+        threads: 4
+        shell:
+            "umi_tools dedup -I {input.bam} -S {output.bam} -L {output.log} "
+            "--mapping-quality 30 && samtools index -@ {threads} {output.bam}"
 
 
 # QC post-dedup

@@ -13,6 +13,7 @@ parser = arg_parser("Parse bam file and select read names from reads within n ba
 parser = add_argument(parser, "--bam", help = "Path to bamfile")
 parser = add_argument(parser, "--cutsites", help = "Path to bed file with locations of cutsites")
 parser = add_argument(parser, "--distance", default = 20, help = "Distance treshold used (Default = 20)")
+parser = add_argument(parser, "--readlength", default = 56, help = "Effective read length (taking into account removal of adapters etc.)")
 parser = add_argument(parser, "--removecontigs", default = "MT|GL", 
                       help = "Contigs to remove, specified as simple regex (Default = MT|GL")
 parser = add_argument(parser, "--outfile", help = "Path to outputfile")
@@ -48,7 +49,7 @@ bam_dt_merged = sites[bam_dt, roll = "nearest"]
 bam_dt_merged[, distance := abs(V2 - V3)]
 
 # Shift reverse reads
-bam_dt_merged[strand == "-", distance := abs(distance - 56)]
+bam_dt_merged[strand == "-", distance := abs(distance - argv$readlength)]
 
 # Select reads
 bam_dt_keep = bam_dt_merged[distance <= argv$distance, ]
