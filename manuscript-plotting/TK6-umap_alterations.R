@@ -3,7 +3,7 @@ sapply(packages, require, character.only = T)
 source("/mnt/AchTeraD/Documents/R-functions/save_and_plot.R")
 
 nthreads = 16
-set.seed = 777
+set.seed = 1337
 
 base_path = "/mnt/AchTeraD/data/ngi/P18158_combined/"
 
@@ -44,12 +44,10 @@ total = do.call(cbind, total)
 
 # Specify certain alterations to color code on
 alterations = data.table(region = c("20q 2-copy gain", "diploid chr13", 
-                                    "chr16q deletion", "chr19p deletion", 
-                                    "chr19 deletion", "chr11q deletion",
-                                    "chr8 amplification"),
-                         startbin = c(9369, 7322, 8359, 9066, 9056, 6770, 5366),
-                         endbin = c(9445, 7658, 8513, 9138, 9252, 6797, 5454),
-                         ploidy = c(4, 2, 1, 1, 1, 1, 3))
+                                    "chr16q deletion", "chr11q deletion"),
+                         startbin = c(9369, 7322, 8359, 6770),
+                         endbin = c(9445, 7658, 8513, 6797),
+                         ploidy = c(4, 2, 1, 1))
 alterations[, alt_length := endbin-startbin]
 
 # Get values
@@ -66,12 +64,8 @@ clusters = lapply(colnames(total), function(sample) {
   
 
   if("diploid chr13" %in% annot) annot = "diploid chr13"
-  else if("chr19 deletion" %in% annot) annot = "chr19 deletion"
   else if("chr16q deletion" %in% annot) annot = "chr16q deletion"
-  else if("chr19p deletion" %in% annot) annot = "chr19p deletion"
-  else if("chr8 amplification" %in% annot) annot = "chr8 amplification"
   else if("20q 2-copy gain" %in% annot) annot = "20q 2-copy gain"
-  #else if("chr19p deletion" %in% annot) annot = "chr19p deletion"
   else if("chr11q deletion" %in% annot) annot = "chr11q deletion"
   else annot = "Major clone"
 
@@ -89,8 +83,8 @@ annot = data.table(sample = colnames(total),
 
 
 config = umap.defaults
-config$n_neighbors = 25
-config$min_dist = 0.5
+config$n_neighbors = 40
+config$min_dist = 0.4
 
 total_umap = umap(t(total), method = "umap-learn", config = config)
 
@@ -101,8 +95,7 @@ umap_dt = data.table(x = total_umap$layout[, 1],
                      alteration = annot$alteration)
 
 umap_dt[, alteration := factor(alteration, levels = c("Major clone", "20q 2-copy gain", "chr16q deletion",
-                                                      "chr19 deletion", "chr8 amplification", "chr11q deletion", 
-                                                      "diploid chr13", "chr19p deletion"))]
+                                                      "chr11q deletion", "diploid chr13"))]
 
 plot = ggplot(umap_dt, aes(x = x, y = y, color = alteration)) +
   geom_point(size = 2) +
@@ -132,7 +125,7 @@ chr_bounds = chr_bounds %>%
          mid_bp = round((chrlen_bp / 2) + start_bp, 0))
 
 #Colors
-colors = c("#496bab", "#9fbdd7", "#c1c1c1", "#e9c47e", "#d6804f", "#b3402e",
+colors = c("#153570", "#577aba", "#c1c1c1", "#e3b55f", "#d6804f", "#b3402e",
            "#821010", "#6a0936", "#ab1964", "#b6519f", "#ad80b9", "#c2a9d1")
 names(colors) = c(as.character(0:10), "10+")
 
@@ -159,8 +152,7 @@ annot_plt = ggplot(annot, aes(x = 1, y = sample, fill = alteration)) +
 
 # Plot heatmap
 plt = ggplot(dt_melt) +
-  ggrastr::rasterize(geom_linerange(aes(ymin = start_cum, ymax = end_cum, x = variable, color = value), size = 5),
-                     dpi = 2300) +
+  ggrastr::rasterize(geom_linerange(aes(ymin = start_cum, ymax = end_cum, x = variable, color = value), size = 5), dpi = 2300) +
   coord_flip() +
   scale_color_manual(values = colors, drop = F) +
   labs(color = "Copy Number") + 
@@ -182,7 +174,7 @@ combined = cowplot::plot_grid(combined_plt_noleg, legend, ncol = 1, rel_heights 
 #               "/mnt/AchTeraD/Documents/Projects/scCUTseq/Plots/manuscript/TK6-UMAP/250kb-UMAP-cluster-GenomewideHeatmap",
 #               height=7, width=16)
 cairo_ps("/mnt/AchTeraD/Documents/Projects/scCUTseq/Plots/manuscript/TK6-UMAP/250kb-UMAP-cluster-GenomewideHeatmap_rast_cairo_ps.eps",
-         onefile = TRUE, width = 16, height = 7, family="Helvetica", pointsize=8, antialias="none", fallback_resolution = 2300)
+         onefile = TRUE, width = 16, height = 4, family="Helvetica", pointsize=8, antialias="none", fallback_resolution = 2300)
 combined
 dev.off()
 

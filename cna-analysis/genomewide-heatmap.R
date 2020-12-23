@@ -1,6 +1,6 @@
 # Author: Luuk Harbers
 # Date: 2020-
-# Script for 
+# Script for plotting genomewide heatmaps of AneuFinder output
 
 # Load/install packages
 packages = c("data.table", "pbapply", "RColorBrewer", "ggdendro", "ggrastr", "GenomicRanges")
@@ -8,8 +8,8 @@ sapply(packages, require, character.only = T)
 source("/mnt/AchTeraD/Documents/R-functions/save_and_plot.R")
 
 # List the samples and parent directory
-run = "BICRO231"
-library = "NZ87"
+run = "BICRO237"
+library = "NZ154"
 parent_dir = "/mnt/AchTeraD/Documents/Projects/scCUTseq/Plots/Aneufinder/"
 
 # Specify binsize, always in format of '1e\\+06', '5e\\+05', etc.
@@ -73,7 +73,7 @@ dt.list = pblapply(files, function(cell){
 }, cl = num_threads)
 
 # Bind rows
-cn_total = dplyr::bind_rows(dt.list)
+cn_total = rbindlist(dt.list)
 
 # Get chromosome lines
 load(files[[1]])
@@ -95,9 +95,9 @@ plt_heatmap = ggplot(cn_total) +
   geom_linerange(aes(ymin = start.genome, ymax = end.genome, x = ID, col = state_fixed), size = 5) + 
   geom_segment(data = df.chroms, aes(x = x, xend = xend, y = y, yend = y), col = 'black') +
   scale_y_continuous(breaks = label.pos, labels = names(label.pos)) + 
-  scale_color_manual(values = c("grey", brewer.pal(5, "Set1")[4], 
-                              brewer.pal(5, "Set1")[3], brewer.pal(5, "Set1")[2], 
-                              brewer.pal(5, "Set1")[5], brewer.pal(5, "Set1"))) +
+  scale_color_manual(values = c(brewer.pal(5, "Set1")[4], brewer.pal(5, "Set1")[2], 
+                                "white", brewer.pal(5, "Set1")[1], 
+                                brewer.pal(5, "Set1")[5], brewer.pal(6, "Set1")[6])) +
   coord_flip() +
   theme(panel.background = element_blank(),
         axis.ticks.x = element_blank(),

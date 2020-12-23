@@ -8,9 +8,9 @@ sapply(packages, require, character.only = T)
 source("/mnt/AchTeraD/Documents/R-functions/save_and_plot.R")
 
 #top folder
-run_name = "BICRO246"
-top_folder = "/mnt/AchTeraD/data/BICRO246/"
-save_folder = "/mnt/AchTeraD/Documents/Projects/scCUTseq/Plots/sequencing_QC/BICRO246/"
+run_name = "BICRO250"
+top_folder = "/mnt/AchTeraD/data/BICRO250/"
+save_folder = "/mnt/AchTeraD/Documents/Projects/scCUTseq/Plots/sequencing_QC/BICRO250/"
 
 #list libraries
 libraries = list.dirs(top_folder, recursive = F, full.names = F)

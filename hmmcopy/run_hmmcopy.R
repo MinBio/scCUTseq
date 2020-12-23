@@ -4,6 +4,7 @@
 
 ## Load/install packages
 packages = c("data.table", "HMMcopy", "argparser", "naturalsort", "ggplot2")
+source("/mnt/AchTeraD/Documents/R-functions/save_and_plot.R")
 invisible(lapply(packages, function(x) suppressMessages(require(x, character.only = TRUE, quietly = TRUE, warn.conflicts = FALSE))))
 
 ## Parse arguments
@@ -14,13 +15,13 @@ parser = add_argument(parser, "--mapp", help = "Path to mappability file")
 parser = add_argument(parser, "--e", help = "Parameter used for 'e'. If not provided, will generate a reasonable value")
 parser = add_argument(parser, "--strength", help = "Parameter used for 'strength'. If not provided, will generate a reasonable value")
 parser = add_argument(parser, "--mu", help = "Parameter used for 'mu'. If not provided, will generate a reasonable value")
-parser = add_argument(parser, "--outdir", help = "Path output directory")
+parser = add_argument(parser, "--outfile", help = "Path output directory")
 
 # Parse arguments
 argv = parse_args(parser)
 
-# Testing purposes
-argv = list(counts = "/mnt/AchTeraD/Documents/Projects/scCUTseq/data/hmmcopy-output/BICRO226+227/NZ74+78/readcounts/500kb/reads-ACTGATCG.dedup_q30.bam.wig",
+# # Testing purposes
+argv = list(counts = "/mnt/AchTeraD/Documents/Projects/scCUTseq/data/hmmcopy-output/BICRO241/MS72/readcounts/500kb/reads-GTTCTCACCGG.dedup_q30.bam.wig",
             gc = "/mnt/AchTeraD/Documents/references/gc_content/hg19-gc_500kb.wig",
             mapp = "/mnt/AchTeraD/Documents/references/mappability/hg19-mappability_500kb.wig")
 
@@ -38,9 +39,9 @@ reads_normalized[is.na(copy) | isFALSE(ideal), copy := NaN]
 #reads_normalized[is.na(copy), copy := NaN]
 
 # Set new params
-#medians = c(-.9, -0.1, 0.5, 0.8, seq(1.2, 4, .4))
-medians = c(-5, seq(-1.4, 4.5, .5)) #SKBR3
-names(medians) = as.character(0:12)
+medians = c(-1.2, -0.2, 0.38, 0.7, seq(1.1, 3.5, .4))
+#medians = c(-5, seq(-1.4, 4.5, .5)) #SKBR3
+names(medians) = as.character(1:11)
 
 params = data.table(strength = 1e30,
                     e = 0.999,
@@ -55,7 +56,10 @@ params = data.table(strength = 1e30,
 
 # params = HMMsegment(reads_normalized, getparam = T)
 # medians = params$mu
-reads_segmented = HMMsegment(reads_normalized, param = params)
+#reads_segmented = HMMsegment(reads_normalized, param = params)
+reads_segmented = HMMsegment(reads_normalized)
+reads_params = HMMsegment(reads_normalized, getparam = T)
+medians = reads_params$mu
 
 #reads_segmented$segs
 setDT(reads_segmented$segs)
@@ -78,10 +82,10 @@ colors = c("#496bab", "#9fbdd7", "#c1c1c1", "#e9c47e", "#d6804f", "#b3402e",
            "#821010", "#6a0936", "#ab1964", "#b6519f", "#ad80b9", "#c2a9d1")
 names(colors) = as.character(0:11)
 
-ggplot(reads_total, aes(x = feature)) + 
-  geom_point(aes(y = copy, color = state), size = 2) +
+plt = ggplot(reads_total, aes(x = feature)) + 
+  geom_point(aes(y = copy, color = state), size = 1) +
   scale_color_manual(values = colors, drop = F) +
-  geom_point(aes(y = median), color = "black", size = 1) +
+  geom_point(aes(y = median), color = "black", size = 0.7) +
   geom_hline(yintercept = medians, linetype = 2) +
   scale_y_continuous(breaks = medians, labels = names(medians), limits = c(medians[1]-1, medians[12]+0.5)) +
   labs(y = "Copy Number", x = "", color = "Copy\nNumber") +
@@ -89,3 +93,4 @@ ggplot(reads_total, aes(x = feature)) +
         axis.line.x = element_blank(),
         axis.ticks.x = element_blank())
 
+save_and_plot(plt, paste0(argv$outfile), width = 10, height = 4)

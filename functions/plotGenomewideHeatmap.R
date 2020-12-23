@@ -71,19 +71,23 @@ plotGenomewideHeatmap = function(files, num_threads) {
   df.chroms = data.table(y = c(0, cum.seqlengths), x = 1, xend = length(files))
   
   # Prepare for plotting
-  #cn_total[, x := as.numeric(ID)]
-  cn_total[, state_fixed := ifelse(copy.number > 4, "> 4-somy", paste0(copy.number, "-somy"))]
-  cn_total[, state_fixed := factor(state_fixed, levels = c("0-somy", "1-somy", "2-somy", "3-somy", "4-somy", "> 4-somy"))]
+  cn_total[, state_fixed := ifelse(copy.number > 10, "> 10-somy", paste0(copy.number, "-somy"))]
+  cn_total[, state_fixed := factor(state_fixed, levels = c("0-somy", "1-somy", "2-somy", "3-somy", "4-somy", "5-somy",
+                                                           "6-somy", "7-somy", "8-somy", "9-somy", "10-somy", "> 10-somy"))]
   cn_total[, ID := factor(ID, levels = ddata$labels$label)] 
+  
+  colors = c("#043b6b", "#408ccf", "#c1c1c1", "#e9c47e", "#d6804f", "#b3402e",
+             "#821010", "#6a0936", "#ab1964", "#b6519f", "#ad80b9", "#c2a9d1")
   
   # Plot heatmap
   plt_heatmap = ggplot(cn_total) + 
     geom_linerange(aes(ymin = start.genome, ymax = end.genome, x = ID, col = state_fixed), size = 5) + 
     geom_segment(data = df.chroms, aes(x = x, xend = xend, y = y, yend = y), col = 'black') +
     scale_y_continuous(breaks = label.pos, labels = names(label.pos)) + 
-    scale_color_manual(values = c(brewer.pal(5, "Set1")[4], brewer.pal(5, "Set1")[2], 
-                                  "white", brewer.pal(5, "Set1")[1], 
-                                  brewer.pal(5, "Set1")[5], brewer.pal(6, "Set1")[6])) +
+    # scale_color_manual(values = c(brewer.pal(5, "Set1")[4], brewer.pal(5, "Set1")[2], 
+    #                               "white", brewer.pal(5, "Set1")[1], 
+    #                               brewer.pal(5, "Set1")[5], brewer.pal(6, "Set1")[6])) +
+    scale_color_manual(values = colors) + 
     coord_flip() +
     theme(panel.background = element_blank(),
           axis.ticks.x = element_blank(),
@@ -100,7 +104,8 @@ plotGenomewideHeatmap = function(files, num_threads) {
   # Get and add legend
   legend = cowplot::get_legend(
     plt_heatmap + guides(color = guide_legend(nrow = 1)) +
-      theme(legend.position = c(0.4, 1),
+      theme(legend.position = "bottom",
+            legend.justification = "left",
             legend.title = element_blank()))
   
   plt = cowplot::plot_grid(plt_noleg, legend, ncol = 1, rel_heights = c(1, 0.05))

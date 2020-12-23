@@ -1,6 +1,6 @@
 ## Directories
-indir: "/mnt/AchTeraD/data/BICRO226+227/NZ74+78/bamfiles/"
-outdir: "/mnt/AchTeraD/Documents/Projects/scCUTseq/data/hmmcopy-output/BICRO226+227/NZ74+78/"
+indir: "/mnt/AchTeraD/data/BICRO241/MS72/bamfiles/"
+outdir: "/mnt/AchTeraD/Documents/Projects/scCUTseq/data/hmmcopy-output/BICRO241/MS72/"
 
 ## reference files
 mappability: "/mnt/AchTeraD/Documents/references/hg19/hg19_56.bw"
@@ -17,4 +17,4 @@ threads: 32
 
 ## Bin
 hmmutil: "/home/luukharbers/hmmcopy_utils/bin/"
-hmmcopy: "/mnt/AchTeraD/Documents/Projects/scCUTseq/Scripts/hmmcopy/"
+hmmcopy: "/mnt/AchTeraD/Documents/Projects/scCUTseq/Scripts/hmmcopy/run_hmmcopy.R"
