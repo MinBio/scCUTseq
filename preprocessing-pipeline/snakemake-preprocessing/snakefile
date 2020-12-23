@@ -35,7 +35,8 @@ if config['lanesplit']:
                     bc = bc.iloc[:,0])),
                 fastq2=temp(expand(config['output'] + "demultiplexed_{{lane}}/{bc}_R2.fastq",
                     bc = bc.iloc[:,0])),
-                unassigned=temp(config['output'] + "demultiplexed_{lane}/unassigned.fastq"),
+                unassigned1=temp(config['output'] + "demultiplexed_{lane}/unassigned_R1.fastq"),
+                unassigned2=temp(config['output'] + "demultiplexed_{lane}/unassigned_R2.fastq"),
                 logfile=temp(config['output'] + config['samplename'] + "_{lane}_log.txt")
             params:
                 outdir=config['output'] + "demultiplexed_{lane}/",
@@ -54,7 +55,7 @@ if config['lanesplit']:
                           lane=lanes)
             output:
                 f1=config['output'] + "demultiplexed/{bc}_R1.fastq",
-                f2=config['output'] + "demultiplexed/{bc}_R1.fastq"
+                f2=config['output'] + "demultiplexed/{bc}_R2.fastq"
             shell:
                 """
                 cat {input.f1} > {output.f1}; cat {input.f2} > {output.f2}

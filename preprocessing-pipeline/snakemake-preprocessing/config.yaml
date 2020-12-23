@@ -1,20 +1,20 @@
 # Sample related
-input: "/mnt/AchTeraD/data/BICRO253/fastq/"
-samplename: "NZ184_S1"
-output: "/mnt/AchTeraD/data/BICRO253/NZ184/"
-paired: False
+input: "/mnt/AchTeraD/data/ngi/P19254/fastq/"
+samplename: "P19254_1001_S1"
+output: "/mnt/AchTeraD/data/ngi/P19254/1001_S1/"
+paired: True
 lanesplit: True
 
 # Semi-static
 bc: "/mnt/AchTeraD/data/384_NlaIII-barcodes.txt"
-cutsites: "/mnt/AchTeraD/Documents/Projects/scCUTseq/cutsite-distribution/mm10_cutsites-fixed.tsv"
+cutsites: "/mnt/AchTeraD/Documents/Projects/scCUTseq/cutsite-distribution/hg19-cutsites_fixed.bed"
 mismatches: 2
 barcode_length: 11
-read_length: 56 # After removing barcodes etc 56 // 130
+read_length: 130 # After removing barcodes etc 56 // 130
 
 # References
-ref: "/mnt/AchTeraD/Documents/references/mm10/mm10.fa"
-refname: 'mm10'
+ref: "/mnt/AchTeraD/Documents/references/hg19/hg19.fa"
+refname: 'hg19'
 
 # Tools
 demux: "python /mnt/AchTeraD/Documents/Projects/scCUTseq/Scripts/preprocessing-pipeline/demultiplex/demultiplex_withcython.py"
