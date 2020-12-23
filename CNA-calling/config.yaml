@@ -1,23 +1,31 @@
 run_info:
-  run: "ngi/P18158_combined"
-  library: "NZ120"
+  run: "BICRO253"
+  library: "NZ184"
 
   base_path: "/mnt/AchTeraD/data/"
   threads: 32
 
-paths:
-  binbed_file: "files/variable_{binsize}_48_bwa.bed"
-  bin_file: "files/variable_{binsize}_48_bwa"
-  gc_file: "files/GC_variable_{binsize}_48_bwa"
-  bnd_file: "files/bounds_variable_{binsize}_48_bwa"
-  blacklist: "files/hg19-blacklist.v2_adjusted.bed"
-  normal: "files/BICRO243_MS67-normal-{binsize}.tsv"
 
+#paths:
+#  binbed_file: "files/hg19/variable_{binsize}_48_bwa.bed"
+#  bin_file: "files/hg19/variable_{binsize}_48_bwa"
+#  gc_file: "files/hg19/GC_variable_{binsize}_48_bwa"
+#  bnd_file: "files/hg19/bounds_variable_{binsize}_48_bwa"
+#  blacklist: "files/hg19/{ref}/blacklist.v2_adjusted.bed"
+#  normal: "files/hg19/BICRO243_MS67-normal-{binsize}.tsv"
+
+paths:
+  binbed_file: "files/mm10/variable_{binsize}_48_bwa.bed"
+  bin_file: "files/mm10/variable_{binsize}_48_bwa"
+  gc_file: "files/mm10/GC_variable_{binsize}_48_bwa"
+  bnd_file: "files/mm10/bounds_variable_{binsize}_48_bwa"
+  blacklist: "files/mm10/mm10-blacklist.v2.bed"
+  normal: "files/empty-normal.tsv"
 
 
 dnacopy:
   # Which binsizes to run
-  binsizes: [500000, 250000, 175000, 100000, 50000]
+  binsizes: [1000000, 500000]
   # Minimum MAPQ score to use for binned reads
   min_mapq: 30
   # Minimum reads / cell

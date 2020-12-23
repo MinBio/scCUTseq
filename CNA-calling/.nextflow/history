@@ -1,0 +1,8 @@
+2020-12-04 15:52:25	10.1s	condescending_torricelli	ERR	bce378e09de25bb26c388b917f93f84806d3ba27	0e05543b-8a73-4b48-95ea-535dc8626e30	nextflow run nf-core/sarek -profile test,docker
+2020-12-04 15:54:31	4m 32s	drunk_curie	ERR	bce378e09de25bb26c388b917f93f84806d3ba27	5df1e1dd-6230-4271-959c-10e3e691b290	nextflow run nf-core/sarek -profile test,docker
+2020-12-04 16:05:13	21.4s	small_bartik	ERR	bce378e09de25bb26c388b917f93f84806d3ba27	cb2a28ec-2aed-4634-98ff-85d9f2acb101	nextflow run nf-core/sarek -profile test,docker
+2020-12-04 16:22:25	18.8s	focused_einstein	ERR	bce378e09de25bb26c388b917f93f84806d3ba27	c6590d38-483d-47ca-abae-9b576d52186c	nextflow run nf-core/sarek -profile test,docker
+2020-12-04 16:25:51	-	furious_yalow	-	bc5fc76f40b2da6082a854927184c9d6e5060393	f0af78bf-0303-4f86-879d-8ecc23688f2b	nextflow run nf-core/rnaseq
+2020-12-04 16:26:21	13m 48s	reverent_mclean	OK	bc5fc76f40b2da6082a854927184c9d6e5060393	f2616d60-06e5-4db3-8c9f-ad77c0a49cb8	nextflow run nf-core/rnaseq -profile test,docker
+2020-12-04 16:42:59	1m 11s	silly_stallman	ERR	bc5fc76f40b2da6082a854927184c9d6e5060393	6481b3b1-d6d5-445f-92db-add0b8f7f2c7	nextflow run nf-core/rnaseq -profile test,singularity
+2020-12-04 16:59:14	21.5s	desperate_hodgkin	ERR	bc5fc76f40b2da6082a854927184c9d6e5060393	effbf3ed-a027-403c-b766-023a652a77df	nextflow run nf-core/rnaseq -profile test,singularity

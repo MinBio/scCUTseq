@@ -7,12 +7,8 @@ packages = c("data.table", "tidyverse", "scales", "pbapply", "ggdendro", "Genomi
 invisible(sapply(packages, require, character.only = T))
 invisible(source("/mnt/AchTeraD/Documents/R-functions/save_and_plot.R"))
 
-load(snakemake@input[[1]])
 data = readRDS(snakemake@input[[2]])
-
-# load("/mnt/AchTeraD/data/ngi/P18158_combined/NZ120/out/dnaobj-psoptim-50000.Rda")
-# data = readRDS("/mnt/AchTeraD/data/ngi/P18158_combined/NZ120/out/dnaobj-50000.Rds")
-
+# data = readRDS("/mnt/AchTeraD/data/BICRO250/MS76/out/dnaobj-500000.Rds")
 # Select stats
 stats = data$stats[[1]]
 setDT(stats)
@@ -32,34 +28,48 @@ chr_bounds = chr_bounds %>%
          end_bp=cumsum(as.numeric(chrlen_bp)), 
          start_bp = end_bp - chrlen_bp, 
          mid_bp = round((chrlen_bp / 2) + start_bp, 0))
-
 #Colors
-colors = c("#153570", "#577aba", "#c1c1c1", "#e3b55f", "#d6804f", "#b3402e",
-           "#821010", "#6a0936", "#ab1964", "#b6519f", "#ad80b9", "#c2a9d1")
-names(colors) = c(as.character(0:10), "10+")
+colors = c("#c1c1c1", brewer_pal(palette = "Set1")(2))
+
+# Samples
+samples = stats$cell
 
 #Plot profile plots
 invisible(pblapply(samples, function(sample) {
-  dt = cbind(bins, psoptim[, sample], 2^dnalrr[,sample]*psoptim.par[, sample])
-  setnames(dt, c("chr", "start", "end", "bin", "end_cum", "start_cum", "cn", "raw"))
-
-  dt[, col := ifelse(cn < 11, as.character(cn), "10+")]
-  dt[, col := factor(col, levels = c(as.character(0:10), "10+"))]
-
+  setDT(data$segs[[1]])
+  dnaseg = data$segs[[1]][ID == sample, c(2:7), with = F]
+  setnames(dnaseg, c("cell_id", "chr", "start", "end", "num.mark", "seg.mean"))
+  dnaseg[, chr := gsub("chr", "", chr)]
+  
+  #dt = cbind(bins, psoptim[, sample], 2^dnalrr[,sample]*psoptim.par[, sample])
+  setkey(bins, chr, start, end)
+  setkey(dnaseg, chr, start, end)
+  dt = foverlaps(dnaseg, bins)
+  setorder(dt, bin)
+  
+  dt = cbind(dt[, c(1:6, 11), with = F], data$lrr[[1]][, sample])
+  setnames(dt, c("chr", "start", "end", "bin", "end_cum", "start_cum", "segment", "raw"))
+  
+  # Set colors
+  dt[segment >= log2(2.5/2), col := "amp"]
+  dt[segment <= log2(1.5/2), col := "del"]
+  dt[is.na(col), col := "neutral"]
+  dt[, col := factor(col, levels = c("neutral", "amp", "del"))]
+  
   # Sample stats
   stat_string = paste0(sample,
                        " | reads: ", stats[cell == sample,]$reads,
                        " | avg reads/bin: ", as.integer(stats[cell == sample]$mean),
                        " | spikiness: ", round(stats[cell == sample,]$spikiness, 2))
-
+  
   # save plot
   ggplot(dt, aes(x = bin)) +
     geom_point(aes(y = raw, color = col), size = 0.7) +
-    geom_point(aes(y = cn), size = 1) +
+    geom_point(aes(y = segment), size = 1) +
     scale_color_manual(values = colors, drop = F) +
-    scale_y_continuous(labels=comma_format(accuracy = 1), breaks = pretty_breaks(6)) +
-    scale_x_continuous(expand = c(0, 0)) +
-    labs(y = "Copy Number", x = "", subtitle = stat_string) +
+    scale_y_continuous(limits = c(-2, 4), labels=comma_format(accuracy = 1), breaks = pretty_breaks(6)) +
+    scale_x_discrete(expand = c(0, 0)) +
+    labs(y = "Log2 ratio", x = "", subtitle = stat_string) +
     geom_vline(data = chr_bounds, aes(xintercept = max), linetype = 2) +
     geom_text(data = chr_bounds, aes(x = mid, y = -Inf, label = chr), vjust = -0.5, hjust = "center", inherit.aes = F) +
     theme(legend.position = "none",
@@ -68,7 +78,7 @@ invisible(pblapply(samples, function(sample) {
   # Save plot
   ggsave(filename = paste0(snakemake@params[["outdir_profiles"]], snakemake@wildcards[["binsize"]], "/", sample, ".png"),
          width = 14, height = 7, units = "in", dpi = 300)
-}, cl = snakemake@threads[[1]]))
+}, cl = 30))
 
 # Save empty plots for empty wells
 toCreate = snakemake@params[["samples"]][!snakemake@params[["samples"]] %in% samples]
@@ -79,7 +89,7 @@ invisible(lapply(toCreate, function(sample) {
 }))
 
 # combine data
-dt = data.table(cbind(bins, psoptim))
+dt = data.table(cbind(bins, data$lrr[[1]]))
 
 # Make dendrogram
 cat("Calculate distances and cluster all samples")
@@ -99,9 +109,9 @@ dendro = ggplot(ggdendro::segment(ddata)) +
 
 # Prepare for heatmap
 dt_melt = melt(dt, id.vars = c("chr", "start", "end", "bin", "start_cum", "end_cum"))
-dt_melt[, value := factor(value)]
-dt_melt[as.numeric(value) > 10, value := "10+"]
-dt_melt[, value := factor(value, levels = c(as.character(0:10), "10+"))]
+# dt_melt[, value := factor(value)]
+# dt_melt[as.numeric(value) > 10, value := "10+"]
+# dt_melt[, value := factor(value, levels = c(as.character(0:10), "10+"))]
 
 # Set sample order
 dt_melt[, variable := factor(variable, levels = ddata$labels$label)]
@@ -110,7 +120,7 @@ dt_melt[, variable := factor(variable, levels = ddata$labels$label)]
 heatmap = ggplot(dt_melt) +
   geom_linerange(aes(ymin = start_cum, ymax = end_cum, x = variable, color = value), size = 2) +
   coord_flip() +
-  scale_color_manual(values = colors, drop = F) +
+  # scale_color_manual(values = colors, drop = F) +
   labs(color = "Copy Number") + 
   scale_y_continuous(expand = c(0, 0), labels = chr_bounds$chr, breaks = chr_bounds$mid_bp) + 
   geom_hline(data = chr_bounds, aes(yintercept = end_bp), linetype = 1, size = .8) +
@@ -161,7 +171,7 @@ if(length(hqsamples) > 1) {
   heatmap = ggplot(dt_melt) +
     geom_linerange(aes(ymin = start_cum, ymax = end_cum, x = variable, color = value), size = 2) +
     coord_flip() +
-    scale_color_manual(values = colors, drop = F) +
+    #scale_color_manual(values = colors, drop = F) +
     labs(color = "Copy Number") + 
     scale_y_continuous(expand = c(0, 0), labels = chr_bounds$chr, breaks = chr_bounds$mid_bp) + 
     geom_hline(data = chr_bounds, aes(yintercept = end_bp), linetype = 1, size = .8) +
@@ -176,10 +186,10 @@ if(length(hqsamples) > 1) {
                 paste0(snakemake@params[["outdir_genomewide"]], "HQ-genomewideheatmap_", snakemake@wildcards[["binsize"]]),
                 width = 16, nrow(ddata$labels) * 0.07, dpi = 900)
 } else {
-    x = data.table()
-    write.table(x, paste0(snakemake@params[["outdir_genomewide"]], "HQ-genomewideheatmap_", snakemake@wildcards[["binsize"]], ".png"),
-                col.names = F, row.names = F, quote = F)
-    }
+  x = data.table()
+  write.table(x, paste0(snakemake@params[["outdir_genomewide"]], "HQ-genomewideheatmap_", snakemake@wildcards[["binsize"]], ".png"),
+              col.names = F, row.names = F, quote = F)
+}
 
 
 

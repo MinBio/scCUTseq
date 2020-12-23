@@ -37,9 +37,15 @@ lapply(binsizes, function(binsize) {
   dnanorm = data.table(dnalrr)
   dnaraw_hq = dnanorm[, colnames(dnanorm) %in% colnames(dt), with = F]
   dnaraw_hq = cbind(bins, dnaraw_hq)
-  dnaraw_means = dnaraw_hq[chr %in% c(1:22, "X"), .(means = rowMeans(.SD)), by = c("chr", "start", "end")]
-
-  write.table(dnaraw_means, paste0("/mnt/AchTeraD/Documents/Projects/scCUTseq/Scripts/CNA-calling/files/BICRO243_MS67-normal-",
-                                   binsize, ".tsv"), quote = F, row.names = F, col.names = F, sep = "\t")
+  dnaraw_means = dnaraw_hq[, .(means = rowMeans(.SD)), by = c("chr", "start", "end")]
+  
+  dnaraw_means[, identifier := factor(paste0(chr, start, end), levels=paste0(chr, start, end))]
+  ggplot(dnaraw_means[chr == 8,], aes(x = identifier, y= means)) +
+    geom_point() +
+    theme(axis.text.x = element_blank(),
+          axis.ticks.x = element_blank())
+  # 
+  # write.table(dnaraw_means, paste0("/mnt/AchTeraD/Documents/Projects/scCUTseq/Scripts/CNA-calling/files/BICRO243_MS67-normal-",
+  #                                  binsize, ".tsv"), quote = F, row.names = F, col.names = F, sep = "\t")
 })
 

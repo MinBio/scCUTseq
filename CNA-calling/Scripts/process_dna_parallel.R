@@ -144,7 +144,7 @@ lowess.gc = function(x, y) {
 }
 
 # Load in bin reference cell line adjustments
-normal = fread("/mnt/AchTeraD/Documents/Projects/scCUTseq/Scripts/CNA-calling/files/normalize.tsv")
+normal = fread(normal)
 setnames(normal, c("chr", "start", "end", "adjust"))
 
 # Get indices to normalize
@@ -158,8 +158,10 @@ data = data %>% ungroup %>%
     normal.gc=map2(filtered, gk.gc, ~apply(.x, 2, function(x){ lowess.gc(.y[[1]], x+1/mean(x+1)) })),
     lrr=map(normal.gc, ~log2(.x))
   )
-for(i in 1:length(indices)) {
-  data$lrr[[1]][indices[[i]], ] = data$lrr[[1]][indices[[i]], ] - normal$adjust[i]
+if(length(indices) > 0) {
+  for(i in 1:length(indices)) {
+    data$lrr[[1]][indices[[i]], ] = data$lrr[[1]][indices[[i]], ] - normal$adjust[i]
+  }
 }
 
 cat("[",run,"] Finished normalization\n")

@@ -36,7 +36,7 @@ rule makeBed:
 		bed=full_path + "bedfiles/{sample}.bed.gz"
 	shell:
 		"""
-		bedtools bamtobed -i {input.bam} | grep -vE '^MT|^GL|^Y' | \
+		bedtools bamtobed -i {input.bam} | grep -vE '^MT|^GL|^Y|^chrM|^chrU|^chrY' | \
 		bedtools intersect -a stdin -b {input.blacklist} -v | \
 		sort -k1,1V -k2,2n -k3,3n | gzip -c > {output}
 		"""
@@ -53,7 +53,7 @@ rule countReads:
 	shell:
 		"""
 		echo {params.sample_id} > {output}
-		bedtools intersect -sorted -nonamecheck -F 0.5 -c -a {input.bins} \
+		bedtools intersect -nonamecheck -F 0.5 -c -a {input.bins} \
 		-b {input.bed} | cut -f4 >> {output}
 		"""
 
