@@ -56,6 +56,7 @@ if config['lanesplit']:
             output:
                 f1=config['output'] + "demultiplexed/{bc}_R1.fastq.gz",
                 f2=config['output'] + "demultiplexed/{bc}_R2.fastq.gz"
+            threads: config['threads']
             shell:
                 """
                 cat {input.f1} | pigz -c -p {threads} > {output.f1};
@@ -71,6 +72,7 @@ if config['lanesplit']:
             output:
                 f1=config['output'] + "demultiplexed/unassigned_R1.fastq.gz",
                 f2=config['output'] + "demultiplexed/unassigned_R2.fastq.gz"
+            threads: config['threads']
             shell:
                 """
                 cat {input.f1} | pigz -c -p {threads} > {output.f1};
@@ -118,6 +120,7 @@ if config['lanesplit']:
                        lane=lanes)
             output:
                 config['output'] + "demultiplexed/{bc}.fastq.gz"
+            threads: config['threads']
             shell:
                 "cat {input} | pigz -c -p {threads} > {output}"
 
@@ -128,6 +131,7 @@ if config['lanesplit']:
                     lane=lanes)
             output:
                 config['output'] + "demultiplexed/unassigned.fastq.gz"
+            threads: config['threads']
             shell:
                 "cat {input} | pigz -c -p {threads} > {output}"
 
