@@ -54,13 +54,12 @@ if config['lanesplit']:
                 f2=expand(config['output'] + "demultiplexed_{lane}/{{bc}}_R2.fastq",
                           lane=lanes)
             output:
-                f1=config['output'] + "demultiplexed/{bc}_R1.fastq",
-                f2=config['output'] + "demultiplexed/{bc}_R2.fastq"
+                f1=config['output'] + "demultiplexed/{bc}_R1.fastq.gz",
+                f2=config['output'] + "demultiplexed/{bc}_R2.fastq.gz"
             shell:
                 """
-                cat {input.f1} > {output.f1};
-                cat {input.f2} > {output.f2}
-
+                cat {input.f1} | pigz -c -p {threads} > {output.f1};
+                cat {input.f2} | pigz -c -p {threads} > {output.f2}
                 """
 
         rule concatenateUnassigned:
@@ -70,33 +69,13 @@ if config['lanesplit']:
                 f2=expand(config['output'] + "demultiplexed_{lane}/unassigned_R2.fastq",
                        lane=lanes)
             output:
-                f1=config['output'] + "demultiplexed/unassigned_R1.fastq",
-                f2=config['output'] + "demultiplexed/unassigned_R2.fastq"
+                f1=config['output'] + "demultiplexed/unassigned_R1.fastq.gz",
+                f2=config['output'] + "demultiplexed/unassigned_R2.fastq.gz"
             shell:
                 """
-                cat {input.f1} > {output.f1}; cat {input.f2} > {output.f2}
-
+                cat {input.f1} | pigz -c -p {threads} > {output.f1};
+                cat {input.f2} | pigz -c -p {threads} > {output.f2}
                 """
-
-        # gzip files
-        rule pigz:
-            input:
-                expand(config['output'] + "demultiplexed/{bc}_R1.fastq",
-                    bc = bc.iloc[:,0]),
-                expand(config['output'] + "demultiplexed/{bc}_R2.fastq",
-                    bc = bc.iloc[:,0]),
-                config['output'] + "demultiplexed/unassigned_R1.fastq",
-                config['output'] + "demultiplexed/unassigned_R2.fastq"
-            output:
-                expand(config['output'] + "demultiplexed/{bc}_R1.fastq.gz",
-                    bc = bc.iloc[:,0]),
-                expand(config['output'] + "demultiplexed/{bc}_R2.fastq.gz",
-                    bc = bc.iloc[:,0]),
-                config['output'] + "demultiplexed/unassigned_R1.fastq.gz",
-                config['output'] + "demultiplexed/unassigned_R2.fastq.gz"
-            threads: config['threads']
-            shell:
-                "pigz {input}"
 
         # Aligning
         rule bwa:
