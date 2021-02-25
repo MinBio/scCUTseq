@@ -1,0 +1,321 @@
+---
+title: "Sequencing report scCUTseq"
+author: "Luuk Harbers"
+date: "`r format(Sys.time(), '%Y-%m-%d')`"
+output: 
+  html_document:
+    df_print: "kable"
+    toc: true
+    toc_depth: 4
+    toc_float:
+      collapsed: false
+      smooth_scroll: true
+---
+
+```{css zoom-lib-src, echo = FALSE}
+script src = "https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"
+```
+
+```{js zoom-jquery, echo = FALSE}
+ $(document).ready(function() {
+    $('body').prepend('<div class=\"zoomDiv\"><img src=\"\" class=\"zoomImg\"></div>');
+    // onClick function for all plots (img's)
+    $('img:not(.zoomImg)').click(function() {
+      $('.zoomImg').attr('src', $(this).attr('src')).css({width: '100%'});
+      $('.zoomDiv').css({opacity: '1', width: 'auto', border: '1px solid white', borderRadius: '5px', position: 'fixed', top: '50%', left: '50%', marginRight: '-50%', transform: 'translate(-50%, -50%)', boxShadow: '0px 0px 50px #888888', zIndex: '50', overflow: 'auto', maxHeight: '100%'});
+    });
+    // onClick function for zoomImg
+    $('img.zoomImg').click(function() {
+      $('.zoomDiv').css({opacity: '0', width: '0%'}); 
+    });
+  });
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+options(width = 14)
+```
+
+</style>
+```{r load libraries and set theme, include = FALSE}
+library(data.table)
+library(ggplot2)
+library(plotly)
+library(RColorBrewer)
+library(cowplot)
+library(magrittr)
+library(ggdendro)
+theme_set(theme_cowplot())
+```
+
+
+
+## `r params$run`
+`r params$run_description`
+
+### Libraries
+``` {r Library and descriptions, results = "asis"}
+text = "* %s
+  + %s
+
+"
+
+for(i in 1:length(params$libraries)) {
+  cat(sprintf(text, params$libraries[i], params$library_description[i]))
+}
+```
+
+
+
+### Read distribution
+#### Plots  
+Plots showing the distribution of reads or paired reads in the case of paired-end sequencing.  
+  
+**total reads** = Total reads that got assigned to the library after demultiplexing on basespace  
+**with barcode** = Number of total reads that have successfully been assigned to a sample  
+**mapped** = Number of reads that map to the reference genome  
+**passed mapping QC** = Primary alignment reads and in the case of paired-end sequencing, reads that are paired that map within 20bp of a cutsite  
+```{r get read distributions, include = F}
+#top folder
+run_name = params$run
+top_folder = paste0(params$basedir, params$run, "/")
+
+#list libraries
+libraries = params$libraries
+
+#get input and output reads after barcode/cutsite extraction
+total_reads = data.table(library = character(), variable = numeric(), value = numeric())
+sample_reads = data.table(V1 = character(), V2 = numeric(), sample = character(), library = character())
+
+# Loop through libraries
+for(library in libraries) {
+  
+  # Get total reads and demultiplexed reads
+  count_file = list.files(paste0(top_folder, library), pattern = "log.txt", full.names = T)
+  counts = fread(count_file, sep = ":", header = F)
+  
+  # Get number of mapped reads and reads mapped within range of cutsite
+  cutsitefiles = list.files(paste0(top_folder, library, "/logs"), pattern = "filter", full.names = T)
+  cutsitefilter = lapply(cutsitefiles, function(file){
+    data = fread(file, sep = ":")
+    data[, sample := gsub("-.*|.*\\/", "", file)]
+  })
+  cutsite_dt = rbindlist(cutsitefilter)
+  cutsite_dt[, V1 := ifelse(grepl("pre", V1), "mapped", "mapped (in cutsite range)")]
+  
+  # Get deduplicated reads
+  dedup_file = list.files(paste0(top_folder, library), pattern = "dedup.tsv", full.names = T)
+  dedup = fread(dedup_file)
+  mapped_dedup = sum(dedup[[11]])
+
+  # Make dt for total reads
+  # total = data.table(library = library, "total reads" = counts$V2[1], "with barcode" = counts$V2[2],
+  #                    "mapped" = sum(cutsite_dt[V1 == "mapped"]$V2),
+  #                    "passed mapping QC" = sum(cutsite_dt[V1 == "passed mapping QC"]$V2),
+  #                    deduplicated = mapped_dedup )
+  total = data.table(library = library, "total reads" = counts$V2[1], "with barcode" = counts$V2[2],
+                     "mapped (in cutsite range)" = sum(cutsite_dt[V1 == "mapped (in cutsite range)"]$V2),
+                     deduplicated = mapped_dedup )
+  total = melt(total, id.vars = "library")
+  
+  # reads to millions and set factors
+  total[, value := value / 1e6]
+  
+  # Make dt for per sample reads
+  dedup_dt = dedup[, c(11, 1)]
+  dedup_dt[, V1 := "deduplicated"]
+  setnames(dedup_dt, c("V2", "sample", "V1"))
+  
+  sample = rbind(cutsite_dt, dedup_dt[, c(3, 1, 2)])
+  sample[, library := library]
+  
+  sample[, V1 := factor(V1, levels = c("mapped", "mapped (in cutsite range)", "deduplicated"))]
+  sample[, V2 := V2 / 1e6]
+  
+  # rbind with total DTs
+  total_reads = rbind(total_reads, total)
+  sample_reads = rbind(sample_reads, sample)
+}
+
+# Set factor levels for total_reads
+total_reads[, variable := factor(variable, levels = c("total reads", "with barcode", "mapped (in cutsite range)", "deduplicated"))]
+
+# if(params$paired) {
+#   total_reads[variable == "deduplicated", value := value / 2]
+#   sample_reads[V1 == "deduplicated", V2 := V2 / 2]
+# }
+```
+
+```{r plot read distributions, fig.width = 12, fig.align = "left", include = T, message = FALSE, warning = FALSE}
+# Plot
+plt1 = ggplot(total_reads, aes(x = library, y = value, fill = variable)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  scale_fill_viridis_d() +
+  labs(y = "Reads (millions)",
+       x = "") +
+  theme(legend.title = element_blank(),
+        legend.position = "top") 
+
+plt2 = ggplot(sample_reads, aes(x = library, y = V2, color = V1)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_point(size = 1.2, position = position_jitterdodge()) +
+  scale_color_viridis_d() +
+  labs(y = "Reads (millions)",
+       x = "")  +
+  theme(legend.title = element_blank(),
+        legend.position = "top")
+
+# Combine plots
+# ggplotly(plt1)
+# ggplotly(plt2) %>% layout(boxmode = "group")
+plt1
+plt2
+```
+
+#### Tables
+
+```{r output table of read distributions, include = T}
+# Get other statistics for excel sheet
+samples_perlib = sapply(libraries, function(x) nrow(sample_reads[library == x & V1 == "mapped"]))
+sample_prededup = sapply(libraries, function(x) sum(sample_reads[library == x & V1 == "mapped (in cutsite range)"]$V2))
+sample_postdedup = sapply(libraries, function(x) sum(sample_reads[library == x & V1 == "deduplicated"]$V2))
+over300k = sapply(libraries, function(x) nrow(sample_reads[library == x & V1 == "deduplicated" & V2 >= 0.3]))
+under300k = sapply(libraries, function(x) nrow(sample_reads[library == x & V1 == "deduplicated" & V2 < 0.3]))
+under50k = sapply(libraries, function(x) nrow(sample_reads[library == x & V1 == "deduplicated" & V2 < 0.05]))
+
+# Copy paste this into excel file
+sheet_text = as.data.table(cbind(
+  Run = run_name, 
+  "Yield (M)" = paste0(format(sum(total_reads[variable == "total reads"]$value), digits = 0)),
+  Library = libraries, 
+  "Mapped in cutsite range (M)" = sample_prededup,
+  "Post deduplication (M)" = sample_postdedup, 
+  "Duplicated (%)" = format((1 - sample_postdedup / sample_prededup ) * 100, digits = 4),
+  "samples > 300K reads" = paste0(over300k, "/", samples_perlib), 
+  "samples < 300K reads" = paste0(under300k, "/", samples_perlib),
+  "samples < 50K reads" = paste0(under50k, "/", samples_perlib), 
+  "Success rate (%)" = format(over300k / samples_perlib * 100, digits = 4)))
+
+# Print tables
+sheet_text[1, 1:2]
+sheet_text[, 3:ncol(sheet_text)]
+```
+
+
+### CNA calling
+Genomewide heatmaps of High quality samples.
+High quality samples are samples that pass the following checks:
+
+* Sample needs to have over 300K reads
+* Sample needs to have on average 50 reads per bin
+* Sample needs to have a 'spikiness' of less than 50
+
+```{r CNA calling generating plots, include = F}
+plts = lapply(params$libraries, function(lib) {
+  plt = lapply(params$binsizes, function(bin) {
+     # Load data
+    load(paste0(params$basedir, params$run, "/", lib, "/out/dnaobj-psoptim-", bin, ".Rda"))
+    data = readRDS(paste0(params$basedir, params$run, "/", lib, "/out/dnaobj-", bin, ".Rds"))
+    
+    # Select stats
+    stats = data$stats[[1]]
+    setDT(stats)
+    
+    # Select bins
+    bins = data$binbed[[1]]
+    setDT(bins)
+    
+    bins[, bin := seq_along(chr)]
+    bins[, end_cum := cumsum((end - start) + 1)]
+    bins[, start_cum := c(1, end_cum[1:length(end_cum)-1] + 1)]
+    
+    # Make chr_bounds
+    chr_bounds = bins[, list(min = min(bin), max = max(bin), chrlen_bp = sum(end-start)), by = chr]
+    chr_bounds = chr_bounds %>% 
+      mutate(mid = round(min + (max-min) / 2,0),
+             end_bp=cumsum(as.numeric(chrlen_bp)), 
+             start_bp = end_bp - chrlen_bp, 
+             mid_bp = round((chrlen_bp / 2) + start_bp, 0))
+    
+    #Colors
+    colors = c("#153570", "#577aba", "#c1c1c1", "#e3b55f", "#d6804f", "#b3402e",
+               "#821010", "#6a0936", "#ab1964", "#b6519f", "#ad80b9", "#c2a9d1")
+    names(colors) = c(as.character(0:10), "10+")
+    
+    # Select hq samples
+    hqsamples = stats[(reads > 3e5 & mean >= 50 & spikiness < 0.5)]$cell
+    
+    # Make dt
+    dt = data.table(cbind(bins, psoptim))
+    dt = dt[, colnames(dt) %in% c("chr", "start", "end", "bin", "start_cum", "end_cum", hqsamples), with = F]
+    
+    # Distance and clustering
+    hc = hclust(dist(t(dt[, 7:ncol(dt)])), method = "average")
+    
+    # Make dendrogram
+    dhc = as.dendrogram(hc)
+    
+    # Rectangular lines
+    ddata = dendro_data(dhc, type = "rectangle")
+    
+    # Plot Dendrogram
+    dendro = ggplot(ggdendro::segment(ddata)) + 
+      geom_segment(aes(x = x, y = y, xend = xend, yend = yend)) +
+      coord_flip() + 
+      scale_y_reverse(expand = c(0, 0)) +
+      scale_x_continuous(expand = c(0.004, 0.004)) +
+      theme_dendro()
+    
+    # Prepare for heatmap
+    dt_melt = melt(dt, id.vars = c("chr", "start", "end", "bin", "start_cum", "end_cum"))
+    dt_melt[, value := factor(value)]
+    dt_melt[as.numeric(value) > 10, value := "10+"]
+    dt_melt[, value := factor(value, levels = c(as.character(0:10), "10+"))]
+    
+    # Set sample order
+    dt_melt[, variable := factor(variable, levels = ddata$labels$label)]
+    
+    # Calculate required linesize
+    linesize = (-1/6) * length(hqsamples) + 17
+    linesize = max(linesize, 1.5)
+    
+    # Plot heatmap
+    heatmap = ggplot(dt_melt) +
+      geom_linerange(aes(ymin = start_cum, ymax = end_cum, x = variable, color = value), size = linesize) +
+      coord_flip() +
+      scale_color_manual(values = colors, drop = F) +
+      labs(color = "Copy Number", title = lib, subtitle = paste0("n = ", length(hqsamples))) + 
+      scale_y_continuous(expand = c(0, 0), labels = chr_bounds$chr, breaks = chr_bounds$mid_bp) + 
+      geom_hline(data = chr_bounds, aes(yintercept = end_bp), linetype = 1, size = .8) +
+      theme(axis.text.y = element_blank(),
+            axis.ticks.y = element_blank(),
+            axis.ticks.x = element_blank(),
+            axis.title = element_blank())
+    cat(paste0(as.integer(bin) / 1e3), "kb")
+    # Plot
+    return(plot_grid(dendro, heatmap,  align = "h", rel_widths = c(.3, 2), ncol = 2))
+    })
+  # Combine plots and save
+  #return(plot_grid(dendro, heatmap,  align = "h", rel_widths = c(.3, 2), ncol = 2))
+  return(plt)
+})
+
+```
+
+``` {r Plot CNA genomewide plots, fig.width = 24, fig.height = 14, fig.align = "left", include = T, warning = FALSE, results = "asis"}
+library_text = "\n#### %s
+
+"
+binsize_text = "%skb
+
+"
+for(i in 1:length(params$libraries)) {
+  cat(sprintf(library_text, params$libraries[i]))
+  for(j in 1:length(params$binsizes)){
+    cat(sprintf(binsize_text, as.integer(params$binsize[j]) / 1e3))
+    print(plts[[i]][[j]])
+    cat("\n")
+  }
+}
+```
+
