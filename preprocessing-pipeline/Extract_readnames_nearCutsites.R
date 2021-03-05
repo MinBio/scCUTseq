@@ -17,6 +17,7 @@ parser = add_argument(parser, "--readlength", default = 56, help = "Effective re
 parser = add_argument(parser, "--removecontigs", default = "MT|GL", 
                       help = "Contigs to remove, specified as simple regex (Default = MT|GL")
 parser = add_argument(parser, "--outfile", help = "Path to outputfile")
+parser = add_argument(parser, "--paired", help = "Sequencing is paired", flag = TRUE)
 
 # Parse arguments
 argv = parse_args(parser)
@@ -34,11 +35,21 @@ sites = sites[!grepl(argv$removecontigs, V1),]
 bam = BamFile(argv$bam)
 
 # Make bam data.table
-aln = scanBam(bam)
-bam_dt = data.table(chr = aln[[1]]$rname, 
-                    pos = aln[[1]]$pos, 
-                    strand = aln[[1]]$strand, 
-                    readname = aln[[1]]$qname)
+if(argv$paired){
+  param = ScanBamParam(what = c("qname", "flag", "rname", "strand", "pos", "qwidth"),
+                       flag = scanBamFlag(isPaired = TRUE, isSecondaryAlignment = FALSE, isFirstMateRead = TRUE))
+} else {
+  param = ScanBamParam(what = c("qname", "flag", "rname", "strand", "pos", "qwidth"),
+                       flag = scanBamFlag(isSecondaryAlignment = FALSE))
+}
+
+aln = scanBam(bam, param = param)[[1]]
+bam_dt = data.table(chr = aln$rname, 
+                    pos = aln$pos, 
+                    width = aln$qwidth,
+                    strand = aln$strand, 
+                    readname = aln$qname)
+bam_dt[strand == "-", pos := pos + width]
 
 # Set keys
 setkey(bam_dt, chr, pos)
@@ -47,9 +58,6 @@ setkey(sites, V1, V2)
 # Overlap using 'roll = nearest' to get closest custite
 bam_dt_merged = sites[bam_dt, roll = "nearest"]
 bam_dt_merged[, distance := abs(V2 - V3)]
-
-# Shift reverse reads
-bam_dt_merged[strand == "-", distance := abs(distance - argv$readlength)]
 
 # Select reads
 bam_dt_keep = bam_dt_merged[distance <= argv$distance, ]

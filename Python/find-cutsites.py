@@ -7,13 +7,14 @@ from Bio.Restriction import *
 import re
 
 #specify enzyme
-enzyme = NlaIII
+enzyme = FatI
 
 #specify reference
-ref = "/mnt/AchTeraD/Documents/references/mm10/mm10.fa"
+ref = "/mnt/AchTeraD/Documents/references/dengue/NC_001474.2.fasta"
 
 #specify output file
-output = "/mnt/AchTeraD/Documents/Projects/scCUTseq/cutsite-distribution/mm10_cutsites.tsv"
+base = "/mnt/AchTeraD/Documents/Projects/COVseq/cutsite-distribution/all-enzymes/"
+output = base + "dengue/dengue_FatI-cutsites.bed"
 
 #loop through chromosomes
 for record in SeqIO.parse(ref, "fasta"):

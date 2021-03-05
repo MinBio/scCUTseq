@@ -79,12 +79,26 @@ if config['lanesplit']:
                 cat {input.f2} | pigz -c -p {threads} > {output.f2}
                 """
 
+        # Trim adapters
+        rule trim:
+            input:
+                fastq1=config['output'] + "demultiplexed/{bc}_R1.fastq.gz",
+                fastq2=config['output'] + "demultiplexed/{bc}_R2.fastq.gz"
+            output:
+                fastq1=config['output'] + "demultiplexed/{bc}.trimmed_R1.fastq.gz",
+                fastq2=config['output'] + "demultiplexed/{bc}.trimmed_R1.fastq.gz"
+            threads: config['threads']
+            shell:
+                "fastp -i {input.fastq1} -I {input.fastq2} -o {output.fastq1} "
+                "-O {output.fastq2} --detect_adapter_for_pe "
+                "--cut_front --cut_tail --cut_mean_quality 30"
+
         # Aligning
         rule bwa:
             input:
                 ref=config['ref'],
-                fastq1=config['output'] + "demultiplexed/{bc}_R1.fastq.gz",
-                fastq2=config['output'] + "demultiplexed/{bc}_R2.fastq.gz"
+                fastq1=config['output'] + "demultiplexed/{bc}.trimmed_R1.fastq.gz",
+                fastq2=config['output'] + "demultiplexed/{bc}.trimmed_R1.fastq.gz"
             output:
                 bam=temp(config['output'] + "bamfiles/{bc}.bam"),
                 bai=temp(config['output'] + "bamfiles/{bc}.bam.bai")
@@ -135,11 +149,22 @@ if config['lanesplit']:
             shell:
                 "cat {input} | pigz -c -p {threads} > {output}"
 
+        # Trim adapters
+        rule trim:
+            input:
+                fastq=config['output'] + "demultiplexed/{bc}.fastq.gz"
+            output:
+                fastq=config['output'] + "demultiplexed/{bc}.trimmed.fastq.gz"
+            threads: config['threads']
+            shell:
+                "fastp -i {input.fastq} -o {output} --cut_front --cut_tail "
+                "--cut_mean_quality 30 "  
+
         # Aligning
         rule bwa:
             input:
                 ref=config['ref'],
-                fastq=config['output'] + "demultiplexed/{bc}.fastq.gz"
+                fastq=config['output'] + "demultiplexed/{bc}.trimmed.fastq.gz"
             output:
                 bam=temp(config['output'] + "bamfiles/{bc}.bam"),
                 bai=temp(config['output'] + "bamfiles/{bc}.bam.bai")
@@ -205,12 +230,26 @@ else:
             shell:
                 "pigz -p {threads} {input}"
 
+        # Trim adapters
+        rule trim:
+            input:
+                fastq1=config['output'] + "demultiplexed/{bc}_R1.fastq.gz",
+                fastq2=config['output'] + "demultiplexed/{bc}_R2.fastq.gz"
+            output:
+                fastq1=config['output'] + "demultiplexed/{bc}.trimmed_R1.fastq.gz",
+                fastq2=config['output'] + "demultiplexed/{bc}.trimmed_R1.fastq.gz"
+            threads: config['threads']
+            shell:
+                "fastp -i {input.fastq1} -I {input.fastq2} -o {output.fastq1} "
+                "-O {output.fastq2} --detect_adapter_for_pe "
+                "--cut_front --cut_tail --cut_mean_quality 30"
+
         # Aligning
         rule bwa:
             input:
                 ref=config['ref'],
-                fastq1=config['output'] + "demultiplexed/{bc}_R1.fastq.gz",
-                fastq2=config['output'] + "demultiplexed/{bc}_R2.fastq.gz"
+                fastq1=config['output'] + "demultiplexed/{bc}.trimmed_R1.fastq.gz",
+                fastq2=config['output'] + "demultiplexed/{bc}.trimmed_R1.fastq.gz"
             output:
                 bam=temp(config['output'] + "bamfiles/{bc}.bam"),
                 bai=temp(config['output'] + "bamfiles/{bc}.bam.bai")
@@ -230,7 +269,7 @@ else:
             output:
                 fastq=temp(expand(config['output'] + "demultiplexed/{bc}.fastq",
                     bc = bc.iloc[:,0])),
-                unassigned=temp(config['output'] + "demultiplexed_/unassigned.fastq"),
+                unassigned=temp(config['output'] + "demultiplexed/unassigned.fastq"),
                 logfile=config['output'] + config['samplename'] + "_log.txt"
             params:
                 outdir=config['output'] + "demultiplexed/",
@@ -254,11 +293,22 @@ else:
             shell:
                 "pigz -p {threads} {input}"
 
+        # Trim adapters
+        rule trim:
+            input:
+                fastq=config['output'] + "demultiplexed/{bc}.fastq.gz"
+            output:
+                fastq=config['output'] + "demultiplexed/{bc}.trimmed.fastq.gz"
+            threads: config['threads']
+            shell:
+                "fastp -i {input.fastq} -o {output} --cut_front --cut_tail "
+                "--cut_mean_quality 30 "  
+
         # Aligning
         rule bwa:
             input:
                 ref=config['ref'],
-                fastq=config['output'] + "demultiplexed/{bc}.fastq.gz"
+                fastq=config['output'] + "demultiplexed/{bc}.trimmed.fastq.gz"
             output:
                 bam=temp(config['output'] + "bamfiles/{bc}.bam"),
                 bai=temp(config['output'] + "bamfiles/{bc}.bam.bai")
@@ -270,22 +320,25 @@ else:
                 "samtools sort -o {output.bam} && "
                 "samtools index -@ {threads} {output.bam}"
 
-# Get readnames of reads that mapped within cutsite range
-# and map to chr 1:22, X or Y
-rule getReads:
-    input:
-        bam=config['output'] + "bamfiles/{bc}.bam",
-        cutsites=config['cutsites']
-    output:
-        temp(config['output'] + "bamfiles/{bc}_readnames.txt")
-    params:
-        readlength = config["read_length"]
-    shell:
-        config['getReads'] + " -b {input.bam} -c {input.cutsites} -o {output} --readlength {params}"
+
 
 
 # Filter reads based on readname using gatk
 if config['paired']:
+    # Get readnames of reads that mapped within cutsite range
+    # and map to chr 1:22, X or Y
+    rule getReads:
+        input:
+            bam=config['output'] + "bamfiles/{bc}.bam",
+            cutsites=config['cutsites']
+        output:
+            temp(config['output'] + "bamfiles/{bc}_readnames.txt")
+        params:
+            readlength = config["read_length"]
+        shell:
+            config['getReads'] + " -b {input.bam} -c {input.cutsites} "
+            "-o {output} --readlength {params} --paired"
+
     rule filterReads:
         input:
             bam=config['output'] + "bamfiles/{bc}.bam",
@@ -301,12 +354,25 @@ if config['paired']:
             -RLF {input.readnames} --FILTER includeReadList --CREATE_INDEX true &&
 
             echo "pre cutsite-distance filter reads: " \\
-            $(samtools view -c -f67 {input.bam}) > {output.log}
+            $(samtools view -c -f 64 -F 260 {input.bam}) > {output.log}
 
             echo "post cutsite-distance filter reads: " \\
-            $(samtools view -c -f67 {output.bam}) >> {output.log}
+            $(samtools view -c -f 64 -F 260 {output.bam}) >> {output.log}
             """
 else:
+    # Get readnames of reads that mapped within cutsite range
+    # and map to chr 1:22, X or Y
+    rule getReads:
+        input:
+            bam=config['output'] + "bamfiles/{bc}.bam",
+            cutsites=config['cutsites']
+        output:
+            temp(config['output'] + "bamfiles/{bc}_readnames.txt")
+        params:
+            readlength = config["read_length"]
+        shell:
+            config['getReads'] + " -b {input.bam} -c {input.cutsites} -o {output} --readlength {params}"
+
     rule filterReads:
         input:
             bam=config['output'] + "bamfiles/{bc}.bam",
@@ -322,10 +388,10 @@ else:
             -RLF {input.readnames} --FILTER includeReadList --CREATE_INDEX true &&
 
             echo "pre cutsite-distance filter reads: " \\
-            $(samtools view -c -F 4 {input.bam}) > {output.log}
+            $(samtools view -c -F 260 {input.bam}) > {output.log}
 
             echo "post cutsite-distance filter reads: " \\
-            $(samtools view -c -F 4 {output.bam}) >> {output.log}
+            $(samtools view -c -F 260 {output.bam}) >> {output.log}
             """
 
 # QC pre-dedup
