@@ -21,7 +21,7 @@ rule all:
 
 
 if config['lanesplit']:
-    lanes = ["L001", "L002", "L003", "L004"]
+    lanes = config['lanes']
 
     # Rule for extracting barcodes from read and appending them to head
     if config['paired']:
@@ -54,8 +54,8 @@ if config['lanesplit']:
                 f2=expand(config['output'] + "demultiplexed_{lane}/{{bc}}_R2.fastq",
                           lane=lanes)
             output:
-                f1=config['output'] + "demultiplexed/{bc}_R1.fastq.gz",
-                f2=config['output'] + "demultiplexed/{bc}_R2.fastq.gz"
+                f1=temp(config['output'] + "demultiplexed/{bc}_R1.fastq.gz"),
+                f2=temp(config['output'] + "demultiplexed/{bc}_R2.fastq.gz")
             threads: config['threads']
             shell:
                 """
@@ -86,7 +86,7 @@ if config['lanesplit']:
                 fastq2=config['output'] + "demultiplexed/{bc}_R2.fastq.gz"
             output:
                 fastq1=config['output'] + "demultiplexed/{bc}.trimmed_R1.fastq.gz",
-                fastq2=config['output'] + "demultiplexed/{bc}.trimmed_R1.fastq.gz"
+                fastq2=config['output'] + "demultiplexed/{bc}.trimmed_R2.fastq.gz"
             threads: config['threads']
             shell:
                 "fastp -i {input.fastq1} -I {input.fastq2} -o {output.fastq1} "
@@ -133,7 +133,7 @@ if config['lanesplit']:
                 expand(config['output'] + "demultiplexed_{lane}/{{bc}}.fastq",
                        lane=lanes)
             output:
-                config['output'] + "demultiplexed/{bc}.fastq.gz"
+                temp(config['output'] + "demultiplexed/{bc}.fastq.gz")
             threads: config['threads']
             shell:
                 "cat {input} | pigz -c -p {threads} > {output}"
@@ -220,10 +220,10 @@ else:
                 config['output'] + "demultiplexed/unassigned_R1.fastq",
                 config['output'] + "demultiplexed/unassigned_R2.fastq"
             output:
-                expand(config['output'] + "demultiplexed/{bc}_R1.fastq.gz",
-                    bc = bc.iloc[:,0]),
-                expand(config['output'] + "demultiplexed/{bc}_R2.fastq.gz",
-                    bc = bc.iloc[:,0]),
+                temp(expand(config['output'] + "demultiplexed/{bc}_R1.fastq.gz",
+                    bc = bc.iloc[:,0])),
+                temp(expand(config['output'] + "demultiplexed/{bc}_R2.fastq.gz",
+                    bc = bc.iloc[:,0])),
                 config['output'] + "demultiplexed/unassigned_R1.fastq.gz",
                 config['output'] + "demultiplexed/unassigned_R2.fastq.gz"
             threads: config['threads']
@@ -237,7 +237,7 @@ else:
                 fastq2=config['output'] + "demultiplexed/{bc}_R2.fastq.gz"
             output:
                 fastq1=config['output'] + "demultiplexed/{bc}.trimmed_R1.fastq.gz",
-                fastq2=config['output'] + "demultiplexed/{bc}.trimmed_R1.fastq.gz"
+                fastq2=config['output'] + "demultiplexed/{bc}.trimmed_R2.fastq.gz"
             threads: config['threads']
             shell:
                 "fastp -i {input.fastq1} -I {input.fastq2} -o {output.fastq1} "
@@ -265,7 +265,7 @@ else:
         rule demux:
             input:
                 fastq=config['input'] + config['samplename'] + "_R1.fastq.gz",
-                barcodes=config['bc'],
+                barcodes=config['bc']
             output:
                 fastq=temp(expand(config['output'] + "demultiplexed/{bc}.fastq",
                     bc = bc.iloc[:,0])),
@@ -287,8 +287,9 @@ else:
                     bc = bc.iloc[:,0]),
                 config['output'] + "demultiplexed/unassigned.fastq"
             output:
-                expand(config['output'] + "demultiplexed/{bc}.fastq.gz",
-                    bc = bc.iloc[:,0])
+                temp(expand(config['output'] + "demultiplexed/{bc}.fastq.gz",
+                    bc = bc.iloc[:,0])),
+                config['output'] + "demultiplexed/unassigned.fastq.gz"
             threads: config['threads']
             shell:
                 "pigz -p {threads} {input}"

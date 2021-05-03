@@ -1,0 +1,92 @@
+import glob, os
+import pandas as pd
+
+# Specify config file
+configfile: "config.yaml"
+
+# Specify samples
+sample = config['samplename']
+
+# Rule specifying output files
+rule all:
+    input:
+        expand(config['output'] + "bamfiles/{bc}.dedup_q30.bam",
+            bc = bc.iloc[:,0]),
+        expand(config['output'] + "bamfiles/{bc}.dedup_q30.bam.bai",
+            bc = bc.iloc[:,0]),
+        config['output'] + config['samplename'] + "_log.txt",
+        config['output'] + config['samplename'] + "_all.tsv",
+        config['output'] + config['samplename'] + "_dedup.tsv"
+
+
+
+# Rule for extracting barcodes from read and appending them to head
+if config['paired']:       
+
+    # Aligning
+    rule bwa:
+        input:
+            ref=config['ref'],
+            fastq1=config['input'] + sample + "_R1.fastq.gz",
+            fastq2=config['input'] + sample + "_R2.fastq.gz"
+        output:
+            bam=temp(config['output'] + "{bc}.bam"),
+            bai=temp(config['output'] + "{bc}.bam.bai")
+        params:
+            rg=r"@RG\tID:{sample}\tSM:{sample}\tPL:ILLUMINA"
+        threads: config['threads']
+        shell:
+            "bwa mem -M -t {threads} -R '{params.rg}' {input} | "
+            "samtools sort -o {output.bam} && "
+            "samtools index -@ {threads} {output.bam}"
+
+else:
+    # Aligning
+    rule bwa:
+        input:
+            ref=config['ref'],
+            fastq=config['output'] + "demultiplexed/{bc}.trimmed.fastq.gz"
+        output:
+            bam=temp(config['output'] + "bamfiles/{bc}.bam"),
+            bai=temp(config['output'] + "bamfiles/{bc}.bam.bai")
+        params:
+            rg=r"@RG\tID:{bc}\tSM:{bc}\tPL:ILLUMINA"
+        threads: config['threads']
+        shell:
+            "bwa mem -M -t {threads} -R '{params.rg}' {input} | "
+            "samtools sort -o {output.bam} && "
+            "samtools index -@ {threads} {output.bam}"
+
+
+
+# QC post-dedup
+rule aflred:
+    input:
+        bam=config['output'] + "bamfiles/{bc}.dedup_q30.bam",
+        ref=config['ref']
+    output:
+        temp(config['output'] + "bamfiles/{bc}.dedup.tsv.gz")
+    shell:
+        config['alfred'] + " qc -r {input.ref} -o {output} "
+        "{input.bam}"
+
+# QC summary
+rule qc:
+    input:
+        expand(config['output'] + "bamfiles/{bc}.all.tsv.gz",
+            bc = bc.iloc[:,0]),
+        expand(config['output'] + "bamfiles/{bc}.dedup.tsv.gz",
+            bc = bc.iloc[:,0])
+    output:
+        protected(config['output'] + config['samplename'] + "_all.tsv"),
+        protected(config['output'] + config['samplename'] + "_dedup.tsv")
+    params:
+        directory=config['output'],
+        out=config['output'] + config['samplename'] + "_"
+    shell:
+        """
+        zgrep ^ME {params.directory}bamfiles/*all.tsv.gz | cut -f 2- | \\
+        sed -n '1p;0~2p' > {params.out}all.tsv
+        zgrep ^ME {params.directory}bamfiles/*dedup.tsv.gz | cut -f 2- | \\
+        sed -n '1p;0~2p' > {params.out}dedup.tsv
+        """

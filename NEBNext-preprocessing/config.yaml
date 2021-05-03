@@ -1,0 +1,15 @@
+# Sample related
+input: "/mnt/AchTeraD/data/BICRO282/fastq/"
+samplename: "NZ272_S1"
+output: "/mnt/AchTeraD/data/BICRO281/NZ272/"
+paired: False
+
+# References
+ref: "/mnt/AchTeraD/Documents/references/hg19/hg19.fa"
+refname: 'hg19'
+
+# Tools
+alfred: "/home/luukharbers/alfred/bin/alfred"
+
+# Threads
+threads: 32
