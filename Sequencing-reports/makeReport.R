@@ -1,11 +1,11 @@
 # Render markdown file with custom params
 
 params = list(basedir = "/mnt/AchTeraD/data/",
-              run = "BICRO253",
+              run = "BICRO284",
               extra_id = "",
-              run_description = "scCUTseq on Mouse brain E11.5",
-              libraries = c("NZ184"),
-              library_description = c("scCUTseq on Mouse brain E11.5"),
+              run_description = "scCUTseq on Prostate (P6) and BRCA1",
+              libraries = c("NZ231", "NZ249", "MS159"),
+              library_description = c("scCUTseq on Prostate P6L3C3", "scCUTseq on Breast cancer", "scCUTseq on Prostate P6L3C1"),
               binsizes = c("500000"))
 
 
