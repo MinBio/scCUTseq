@@ -84,6 +84,36 @@ def process_barcode(read, barPos, umiPos, keepPos, patLen):
     record = [ ' '.join(['_'.join(['@'+id[0]] + id_extra)] + id[1:]), seq, '+', qual ]
     return bc_seq, record
 
+def process_barcode_paired(read1, read2, barPos, umiPos, keepPos, patLen):
+    # Process read 1
+    id, seq, qual = read1
+    id = id.split()
+    id_extra = []
+
+    bc_seq = ''.join([seq[beg:end] for beg, end in barPos])
+    bc_tag = ':'.join(['BC', 'Z'] + [bc_seq])
+    qt_tag = ':'.join(['QT', 'Z'] + [''.join([qual[beg:end] for beg, end in barPos])])
+    id_extra = id_extra + [bc_tag, qt_tag]
+    if umiPos:
+        rx_tag = ':'.join(['RX', 'Z'] + [''.join([seq[beg:end] for beg, end in umiPos])])
+        qx_tag = ':'.join(['QX', 'Z'] + [''.join([qual[beg:end] for beg, end in umiPos])])
+        id_extra = id_extra + [rx_tag, qx_tag]
+    if keepPos:
+        seq = ''.join([seq[beg:end] for beg, end in keepPos] + [seq[patLen:]])
+        qual = ''.join([qual[beg:end] for beg, end in keepPos] + [qual[patLen:]])
+    else:
+        seq = seq[patLen:]
+        qual = qual[patLen:]
+
+    record1 = [ ' '.join(['_'.join(['@'+id[0]] + id_extra)] + id[1:]), seq, '+', qual ]
+
+    # Process read 2
+    id, seq, qual = read2
+    id = id.split()
+    record2 = [ ' '.join(['_'.join(['@'+id[0]] + id_extra)] + id[1:]), seq, '+', qual ]
+
+    return bc_seq, (record1, record2)
+
 if __name__ == '__main__':
 
     # Parse arguments
@@ -140,7 +170,11 @@ if __name__ == '__main__':
 
     # Output command information if verbosity is set
     if verbose:
-        print('Input file(s):', inFile)
+        if run == "single":
+            print('Input file(s):', inFile)
+        else:
+            print('Input file(s) Read 1:', inFile)
+            print('Input file(s) Read 2:', inFile2)
         print('Output directory:', output_dir)
         print('Refenence barcodes file:', barcode)
         print('Defined UMIs coordinates offset:', str(pos_umi))
@@ -158,89 +192,124 @@ if __name__ == '__main__':
         if pos_discard:
             print('Pattern position(s) to discard:', [ (a+1, b) for a,b in pos_discard ])
 
-    # Read in barcodes and perform barcode checks
-    with open(barcode, 'rt') as bc_handle:
-        barcode_files = { bc.strip() : output_dir + bc.strip() + '.fq.gz' for bc in bc_handle }
-        
-        # Barcode distance check
-        for key1 in barcode_files.keys():
-            for key2 in barcode_files.keys():
-                if hamming(key1, key2) <= 2 and key1 != key2:
-                    print('Warning: two barcodes (' + key1, 'and', key2 + ') have Hamming distance <=' + distance)
-
-        for key in barcode_files.keys():
-            if os.path.isfile(barcode_files[key]):
-                os.remove(barcode_files[key])
-        if os.path.isfile(output_dir + 'discarded.fq.gz') and keep:
-            os.remove(output_dir + 'discarded.fq.gz')
-
-        len_barcode = len(list(barcode_files.keys())[0])
-        if len_barcode != sum([b-a for a, b in pos_barcode]):
-            print("Error: Pattern (" + str(sum([b-a for a, b in pos_barcode])) + ") and file (" + str(len_barcode) + ") barcode lengths differ!")
-            exit(1)
-
         # Start loop through input files
         # single-end processing
         if run == "single":
-            global_counter = Counter([ key for key in barcode_files.keys()] + ['discarded'])
-            for input_file in inFile:
-                if os.path.splitext(input_file)[1] == '.gz':
-                    file_iterator = FastqGeneralIterator(gzip.open(input_file, 'rt'))
-                else:
-                    file_iterator = FastqGeneralIterator(open(input_file, 'rt'))
+            # Read in barcodes and perform barcode checks
+            with open(barcode, 'rt') as bc_handle:
+                barcode_files = { bc.strip() : output_dir + bc.strip() + '.fq.gz' for bc in bc_handle }
                 
-                # Process reads
-                processed = 0
-                local_counter = Counter([ key for key in barcode_files.keys()] + ['discarded'])
-                with Pool(processes = threads) as pool:
-                    for i, batch in enumerate(batch_iterator(file_iterator, batch_size)):
-                        g = pool.map(partial(process_barcode, barPos=pos_barcode, umiPos=pos_umi, keepPos=pos_keep, patLen=len_pattern), read_batch(batch))
-                        processed += len(g)
-                        # Group reads by barcode
-                        sortkeyfn = itemgetter(0)
-                        g.sort(key=sortkeyfn)
-                        g = {key : list(v[1] for v in valuesiter) for key, valuesiter in groupby(g, key=sortkeyfn)}
-                        # Write (append) to files
-                        for bc in g.keys():
-                            if bc in barcode_files.keys():
-                                with gzip.open(barcode_files[bc], 'at') as out_handle:
-                                    [ out_handle.write(field+'\n') for read in g[bc] for field in read ]
-                                global_counter[bc] += len(g[bc])
-                                local_counter[bc] += len(g[bc])
-                            else:
-                                found = False
-                                for key in barcode_files.keys():
-                                    if hamming(bc, key) <= distance:
-                                        with gzip.open(barcode_files[key], 'at') as out_handle:
-                                            [ out_handle.write(field+'\n') for read in g[bc] for field in read ]
-                                        global_counter[key] += len(g[bc])
-                                        local_counter[key] += len(g[bc])
-                                        found = True
-                                        break
-                                if not found:
-                                    with gzip.open(output_dir + 'discarded.fq.gz', 'at') as out_handle:
+                # Barcode distance check
+                for key1 in barcode_files.keys():
+                    for key2 in barcode_files.keys():
+                        if hamming(key1, key2) <= 2 and key1 != key2:
+                            print('Warning: two barcodes (' + key1, 'and', key2 + ') have Hamming distance <=' + distance)
+
+                for key in barcode_files.keys():
+                    if os.path.isfile(barcode_files[key]):
+                        os.remove(barcode_files[key])
+                if os.path.isfile(output_dir + 'discarded.fq.gz') and keep:
+                    os.remove(output_dir + 'discarded.fq.gz')
+
+                len_barcode = len(list(barcode_files.keys())[0])
+                if len_barcode != sum([b-a for a, b in pos_barcode]):
+                    print("Error: Pattern (" + str(sum([b-a for a, b in pos_barcode])) + ") and file (" + str(len_barcode) + ") barcode lengths differ!")
+                    exit(1)
+
+                global_counter = Counter([ key for key in barcode_files.keys()] + ['discarded'])
+                for input_file in inFile:
+                    if os.path.splitext(input_file)[1] == '.gz':
+                        file_iterator = FastqGeneralIterator(gzip.open(input_file, 'rt'))
+                    else:
+                        file_iterator = FastqGeneralIterator(open(input_file, 'rt'))
+                    
+                    # Process reads
+                    processed = 0
+                    local_counter = Counter([ key for key in barcode_files.keys()] + ['discarded'])
+                    with Pool(processes = threads) as pool:
+                        for i, batch in enumerate(batch_iterator(file_iterator, batch_size)):
+                            g = pool.map(partial(process_barcode, barPos=pos_barcode, umiPos=pos_umi, keepPos=pos_keep, patLen=len_pattern), read_batch(batch))
+                            processed += len(g)
+                            # Group reads by barcode
+                            sortkeyfn = itemgetter(0)
+                            g.sort(key=sortkeyfn)
+                            g = {key : list(v[1] for v in valuesiter) for key, valuesiter in groupby(g, key=sortkeyfn)}
+                            # Write (append) to files
+                            for bc in g.keys():
+                                if bc in barcode_files.keys():
+                                    with gzip.open(barcode_files[bc], 'at') as out_handle:
                                         [ out_handle.write(field+'\n') for read in g[bc] for field in read ]
-                                    global_counter['discarded'] += len(g[bc])
-                                    local_counter['discarded'] += len(g[bc])
-                        if verbose:
-                            print(os.path.basename(input_file) + ':', 'processed', processed, 'reads')
-                    file_iterator.close()
-                out_stats = regex.sub('(fq|fastq).*$', 'stats.txt', input_file)
-                with open(out_stats, 'wt') as out_handle:
-                    for key in barcode_files.keys():
-                        out_handle.write('\t'.join(['Barcode', key, str(local_counter[key]-1), str((local_counter[key]-1)/processed) ]) + '\n')
-                    out_handle.write('\t'.join(['Barcode', 'Discarded', str(local_counter['discarded']-1), str((local_counter['discarded']-1)/processed)]) + '\n')
-            if len(inFile) > 1:
-                with open('Comulative.stats.txt', 'wt') as out_handle:
-                    for key in barcode_files.keys():
-                        out_handle.write('\t'.join(['Barcode', key, str(local_counter[key]-1), str((local_counter[key]-1)/processed)]) + '\n')
-                    out_handle.write('\t'.join(['Barcode', 'Discarded', str(local_counter['discarded']-1), str((local_counter['discarded']-1)/processed)]) + '\n')
-        
+                                    global_counter[bc] += len(g[bc])
+                                    local_counter[bc] += len(g[bc])
+                                else:
+                                    found = False
+                                    for key in barcode_files.keys():
+                                        if hamming(bc, key) <= distance:
+                                            with gzip.open(barcode_files[key], 'at') as out_handle:
+                                                [ out_handle.write(field+'\n') for read in g[bc] for field in read ]
+                                            global_counter[key] += len(g[bc])
+                                            local_counter[key] += len(g[bc])
+                                            found = True
+                                            break
+                                    if not found:
+                                        with gzip.open(output_dir + 'discarded.fq.gz', 'at') as out_handle:
+                                            [ out_handle.write(field+'\n') for read in g[bc] for field in read ]
+                                        global_counter['discarded'] += len(g[bc])
+                                        local_counter['discarded'] += len(g[bc])
+                            if verbose:
+                                print(os.path.basename(input_file) + ':', 'processed', processed, 'reads')
+                        file_iterator.close()
+                    out_stats = regex.sub('(fq|fastq).*$', 'stats.txt', input_file)
+                    with open(out_stats, 'wt') as out_handle:
+                        for key in barcode_files.keys():
+                            out_handle.write('\t'.join(['Barcode', key, str(local_counter[key]-1), str((local_counter[key]-1)/processed) ]) + '\n')
+                        out_handle.write('\t'.join(['Barcode', 'Discarded', str(local_counter['discarded']-1), str((local_counter['discarded']-1)/processed)]) + '\n')
+                if len(inFile) > 1:
+                    with open('Comulative.stats.txt', 'wt') as out_handle:
+                        for key in barcode_files.keys():
+                            out_handle.write('\t'.join(['Barcode', key, str(local_counter[key]-1), str((local_counter[key]-1)/processed)]) + '\n')
+                        out_handle.write('\t'.join(['Barcode', 'Discarded', str(local_counter['discarded']-1), str((local_counter['discarded']-1)/processed)]) + '\n')
+            
         # Start loop through input files
         # paired-end processing
         if run == "paired":
-            global_counter = Counter([ key for key in barcode_files.keys()] + ['discarded'])
-            for input_file, input_file2 in inFile, inFile2:
+            # Read in barcodes and perform barcode checks
+            with open(barcode, 'rt') as bc_handle:
+                barcode_files_r1 = { bc.strip() : output_dir + bc.strip() + '_R1.fq.gz' for bc in bc_handle }
+            barcode_files_r2 = { bc : output_dir + bc + '_R2.fq.gz' for bc in barcode_files_r1.keys() }
+                
+            # Check if barcode file keys are identical
+            if not barcode_files_r1.keys() == barcode_files_r2.keys():
+                print("Error: Barcode R1 and R2 files are not identical")
+                exit(1)
+            
+            # Barcode distance check
+            for key1 in barcode_files_r1.keys():
+                for key2 in barcode_files_r1.keys():
+                    if hamming(key1, key2) <= 2 and key1 != key2:
+                        print('Warning: two barcodes (' + key1, 'and', key2 + ') have Hamming distance <=' + distance)
+
+            # Remove files if present
+            for key in barcode_files_r1.keys():
+                if os.path.isfile(barcode_files_r1[key]):
+                    os.remove(barcode_files_r1[key])
+            for key in barcode_files_r2.keys():
+                if os.path.isfile(barcode_files_r2[key]):
+                    os.remove(barcode_files_r2[key])
+
+            # Remove discarded file if present
+            if os.path.isfile(output_dir + 'discarded_R1.fq.gz') and keep:
+                os.remove(output_dir + 'discarded_R1.fq.gz')
+            if os.path.isfile(output_dir + 'discarded_R2.fq.gz') and keep:
+                os.remove(output_dir + 'discarded_R2.fq.gz')
+
+            len_barcode = len(list(barcode_files_r1.keys())[0])
+            if len_barcode != sum([b-a for a, b in pos_barcode]):
+                print("Error: Pattern (" + str(sum([b-a for a, b in pos_barcode])) + ") and file (" + str(len_barcode) + ") barcode lengths differ!")
+                exit(1)
+        
+            global_counter = Counter([ key for key in barcode_files_r1.keys()] + ['discarded'])
+            for input_file, input_file2 in zip(inFile, inFile2):
                 if os.path.splitext(input_file)[1] == '.gz':
                     file_iterator_r1 = FastqGeneralIterator(gzip.open(input_file, 'rt'))
                     file_iterator_r2 = FastqGeneralIterator(gzip.open(input_file2, 'rt'))
@@ -250,10 +319,12 @@ if __name__ == '__main__':
                 
                 # Process reads
                 processed = 0
-                local_counter = Counter([ key for key in barcode_files.keys()] + ['discarded'])
+                local_counter = Counter([ key for key in barcode_files_r1.keys()] + ['discarded'])
                 with Pool(processes = threads) as pool:
-                    for i, batch in enumerate(batch_iterator(file_iterator, batch_size)):
-                        g = pool.map(partial(process_barcode, barPos=pos_barcode, umiPos=pos_umi, keepPos=pos_keep, patLen=len_pattern), read_batch(batch))
+                    for i, (batch1, batch2) in enumerate(zip(batch_iterator(file_iterator_r1, batch_size), 
+                    batch_iterator(file_iterator_r2, batch_size))):
+                        g = pool.starmap(partial(process_barcode_paired, barPos=pos_barcode, umiPos=pos_umi, keepPos=pos_keep, patLen=len_pattern), 
+                        zip(read_batch(batch1), read_batch(batch2)))
                         processed += len(g)
                         # Group reads by barcode
                         sortkeyfn = itemgetter(0)
@@ -261,37 +332,45 @@ if __name__ == '__main__':
                         g = {key : list(v[1] for v in valuesiter) for key, valuesiter in groupby(g, key=sortkeyfn)}
                         # Write (append) to files
                         for bc in g.keys():
-                            if bc in barcode_files.keys():
-                                with gzip.open(barcode_files[bc], 'at') as out_handle:
-                                    [ out_handle.write(field+'\n') for read in g[bc] for field in read ]
+                            if bc in barcode_files_r1.keys():
+                                with gzip.open(barcode_files_r1[bc], 'at') as out_handle:
+                                    [ out_handle.write(field+'\n') for read in g[bc] for field in read[0] ]
+                                with gzip.open(barcode_files_r2[bc], 'at') as out_handle:
+                                    [ out_handle.write(field+'\n') for read in g[bc] for field in read[1] ]
                                 global_counter[bc] += len(g[bc])
                                 local_counter[bc] += len(g[bc])
                             else:
                                 found = False
-                                for key in barcode_files.keys():
+                                for key in barcode_files_r1.keys():
                                     if hamming(bc, key) <= distance:
-                                        with gzip.open(barcode_files[key], 'at') as out_handle:
-                                            [ out_handle.write(field+'\n') for read in g[bc] for field in read ]
+                                        with gzip.open(barcode_files_r1[key], 'at') as out_handle:
+                                            [ out_handle.write(field+'\n') for read in g[bc] for field in read[0] ]
+                                        with gzip.open(barcode_files_r2[key], 'at') as out_handle:
+                                            [ out_handle.write(field+'\n') for read in g[bc] for field in read[1] ]
                                         global_counter[key] += len(g[bc])
                                         local_counter[key] += len(g[bc])
                                         found = True
                                         break
                                 if not found:
-                                    with gzip.open(output_dir + 'discarded.fq.gz', 'at') as out_handle:
-                                        [ out_handle.write(field+'\n') for read in g[bc] for field in read ]
+                                    with gzip.open(output_dir + 'discarded_R1.fq.gz', 'at') as out_handle:
+                                        [ out_handle.write(field+'\n') for read in g[bc] for field in read[0] ]
+                                    with gzip.open(output_dir + 'discarded_R2.fq.gz', 'at') as out_handle:
+                                        [ out_handle.write(field+'\n') for read in g[bc] for field in read[1] ]
                                     global_counter['discarded'] += len(g[bc])
                                     local_counter['discarded'] += len(g[bc])
                         if verbose:
                             print(os.path.basename(input_file) + ':', 'processed', processed, 'reads')
-                    file_iterator.close()
-                out_stats = regex.sub('(fq|fastq).*$', 'stats.txt', input_file)
+                    file_iterator_r1.close()
+                    file_iterator_r2.close()
+                out_stats = regex.sub('(_R1.fq|_R1.fastq).*$', '.stats.txt', input_file)
                 with open(out_stats, 'wt') as out_handle:
-                    for key in barcode_files.keys():
+                    for key in barcode_files_r1.keys():
                         out_handle.write('\t'.join(['Barcode', key, str(local_counter[key]-1), str((local_counter[key]-1)/processed) ]) + '\n')
                     out_handle.write('\t'.join(['Barcode', 'Discarded', str(local_counter['discarded']-1), str((local_counter['discarded']-1)/processed)]) + '\n')
             if len(inFile) > 1:
                 with open('Comulative.stats.txt', 'wt') as out_handle:
-                    for key in barcode_files.keys():
+                    for key in barcode_files_r1.keys():
                         out_handle.write('\t'.join(['Barcode', key, str(local_counter[key]-1), str((local_counter[key]-1)/processed)]) + '\n')
                     out_handle.write('\t'.join(['Barcode', 'Discarded', str(local_counter['discarded']-1), str((local_counter['discarded']-1)/processed)]) + '\n')
 
+            
