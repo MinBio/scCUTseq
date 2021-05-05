@@ -1,12 +1,14 @@
 # Sample related
-input: "/mnt/AchTeraD/data/run347/fastq-2/"
-samplename: "Undetermined_S0"
-output: "/mnt/AchTeraD/data/run347/turin_cutseq-und/"
+indir: "/mnt/AchTeraD/data/CUTseq_2/fastq/"
+samplename: "CUTseq_Turin_S1"
+outdir: "/mnt/AchTeraD/data/CUTseq_2/results/"
+trim: True # Trim adapters yes/no
 paired: False
 lanesplit: True
+lanes: ["L001", "L002", "L003", "L004"] # Might need to change for NextSeq 2000 vs Nextseq500/550 or Novaseq
 
 # Semi-static
-bc: "/mnt/AchTeraD/data/run347/barcodes-turincutseq.txt"
+bc: "/mnt/AchTeraD/data/CUTseq_2/barcodes.txt"
 cutsites: "/mnt/AchTeraD/Documents/Projects/scCUTseq/cutsite-distribution/hg19-cutsites_fixed.bed"
 mismatches: 1
 barcode_length: 8

@@ -30,7 +30,7 @@ def process_fastq(entry, barcodes, mismatches,
 	umi = entry.sequence[0:umi_length]
 	barcode = entry.sequence[umi_length:umi_length + barcode_length]
 	match = hammingDistanceLoop(barcode, barcodes.iloc[:,0], mismatches)
-	return (match, f"@{entry.name}_{match}_{umi} {entry.comment}\n{entry.sequence[20:]}\n+\n{entry.quality[20:]}\n")
+	return (match, f"@{entry.name}_{match}_{umi} {entry.comment}\n{entry.sequence[umi_length + barcode_length:]}\n+\n{entry.quality[umi_length + barcode_length:]}\n")
 
 def iterateFastq(str fastq, barcodes, int mismatches,
 	int update, str outdir, str log, int barcode_length, int umi_length):
@@ -73,7 +73,7 @@ def process_fastq_paired(entry_r1, entry_r2, barcodes, mismatches,
 	barcode = entry_r1.sequence[umi_length:umi_length + barcode_length]
 	match = hammingDistanceLoop(barcode, barcodes.iloc[:,0], mismatches)
 	return (match,
-		f"@{entry_r1.name}_{match}_{umi} {entry_r1.comment}\n{entry_r1.sequence[20:]}\n+\n{entry_r1.quality[20:]}\n",
+		f"@{entry_r1.name}_{match}_{umi} {entry_r1.comment}\n{entry_r1.sequence[umi_length + barcode_length:]}\n+\n{entry_r1.quality[umi_length + barcode_length:]}\n",
 		f"@{entry_r2.name}_{match}_{umi} {entry_r2.comment}\n{entry_r2.sequence}\n+\n{entry_r2.quality}\n")
 
 def iterateFastq_paired(in_r1, in_r2, barcodes, mismatches,
