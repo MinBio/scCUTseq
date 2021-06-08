@@ -7,18 +7,17 @@ packages = c("data.table", "ggplot2", "naturalsort", "pbapply", "ggdendro", "gga
 sapply(packages, require, character.only = T)
 source("/mnt/AchTeraD/Documents/R-functions/save_and_plot.R")
 
-nthreads = 16
+nthreads = 32
 
 # Block annotation
-blocks = fread("/mnt/AchTeraD/Documents/Projects/scCUTseq/data/prostate/patient3_blocks.tsv")
+blocks = fread("/mnt/AchTeraD/Documents/Projects/scCUTseq/data/prostate/patient6_blocks.tsv")
 
-base_path = "/mnt/AchTeraD/data/"
+base_path = "/mnt/AchTeraD/data/BICRO284/"
 
 rda = list.files(base_path, pattern = "-500000.Rda", recursive = T, full.names = T)
 rds = list.files(base_path, pattern = "-500000.Rds", recursive = T, full.names = T)
 rda = rda[grepl(paste(blocks$library, collapse = "|"), rda)]
 rds = rds[grepl(paste(blocks$library, collapse = "|"), rds)]
-
 # Set QC thresholds
 min_reads = 3e5
 max_spikiness = 0.5
@@ -32,7 +31,7 @@ total = pblapply(1:length(rda), function(lib) {
   stats = rds$stats[[1]]
   setDT(stats)
   dt = data.table(psoptim)
-
+  
   # Filter out low quality cells
   usable_cells = stats[reads > min_reads & spikiness < max_spikiness & mean > min_avgreads, cell]
   dt = dt[, colnames(dt) %in% usable_cells, with = F]
@@ -104,8 +103,8 @@ config = umap.defaults
 config$n_neighbors = 25 
 config$min_dist = 0.2
 
-total_umap = umap(t(total[, .SD, .SDcols = !c("chr", "start", "end", "bin", "end_cum", "start_cum")]),
-                  method = "umap-learn", config = config)
+total_umap = umap(t(total[, .SD, .SDcols = !c("chr", "start", "end", "bin", "end_cum", "start_cum")]), 
+                  config = config)
 
 umap_dt = data.table(x = total_umap$layout[, 1],
                      y = total_umap$layout[, 2],
@@ -117,7 +116,7 @@ plot = ggplot(umap_dt, aes(x = x, y = y, color = block)) +
   scale_color_hue() +
   labs(x  = "UMAP 1", y = "UMAP 2", color = "Block", title = paste0("n = ", length(sample_order)))
 
-save_and_plot(plot, "/mnt/AchTeraD/Documents/Projects/scCUTseq/Plots/prostate/UMAP_patient3",
+save_and_plot(plot, "/mnt/AchTeraD/Documents/Projects/scCUTseq/Plots/prostate/UMAP_patient6",
               width = 9, height = 7)
 
 # Plot genome profile heatmap
@@ -168,5 +167,5 @@ legend = cowplot::get_legend(
     theme(legend.position = "bottom"))
 
 combined = cowplot::plot_grid(combined_noleg, legend, ncol = 1, rel_heights = c(1, 0.1))
-save_and_plot(combined, "/mnt/AchTeraD/Documents/Projects/scCUTseq/Plots/prostate/patient3_genomewideheatmap-novaseq",
+save_and_plot(combined, "/mnt/AchTeraD/Documents/Projects/scCUTseq/Plots/prostate/patient6_genomewideheatmap-novaseq",
               height = 20, width = 20)
