@@ -1,0 +1,50 @@
+import glob, os
+
+# Specify config file
+configfile: "config.yaml"
+gatk = config['gatk']
+# Specify samples
+samples = glob.glob(config['indir'] + "*.bam")
+samples = [os.path.basename(os.path.splitext(sample)[0]) for sample in samples]
+
+# Rule specifying output files
+rule all:
+	input:
+		expand(config['outdir'] + "{sample}/filtered-{sample}.vcf.gz", 
+			sample = samples)
+
+# Rule for standard snp calling using mutect2
+rule haplotypecaller:
+	input:
+		bam=config['indir'] + "{sample}.bam",
+		ref="/mnt/AchTeraD/Documents/references/hg19/hg19.fa"
+	output:
+		vcf=config['outdir'] + "{sample}/{sample}.vcf.gz"
+	threads: 2
+	shell:
+		gatk + " HaplotypeCaller -I {input.bam} -R {input.ref} -O {output.vcf}"
+
+# Rule CNN
+rule CNNscorevariants:
+	input:
+		bam=config['indir'] + "{sample}.bam",
+		vcf=config['outdir'] + "{sample}/{sample}.vcf.gz",
+		ref="/mnt/AchTeraD/Documents/references/hg19/hg19.fa"
+	output:
+		config['outdir'] + "{sample}/annot-{sample}.vcf.gz"
+	shell:
+		gatk + " CNNScoreVariants -I {input.bam} -V {input.vcf} -R {input.ref} "
+		"-O {output} -tensor-type read-tensor"
+
+# Rule to filter snv calls
+rule filtercalls:
+	input:
+		vcf=config['outdir'] + "{sample}/annot-{sample}.vcf.gz",
+		hapmap="/mnt/AchTeraD/Documents/references/vcf-files/b37_hapmap_3.3.b37.vcf"
+	output:
+		config['outdir'] + "{sample}/filtered-{sample}.vcf.gz"
+	shell:
+		gatk + " FilterVariantTranches -V {input.vcf} --resource {input.hapmap} "
+		"--info-key CNN_2D --snp-tranche 99 -O {output}"
+
+

@@ -4,7 +4,7 @@ library(DT)
 library(shinyFiles)
 
 # List files to rate
-imgs = list.files("/mnt/AchTeraD/data/BICRO278/MS102/plots/profileplots/500000", pattern=".png", full.names = TRUE)
+imgs = list.files("/mnt/AchTeraD/data/BICRO277/NZ170/cnv/500000/plots/profiles/", pattern=".png", full.names = TRUE)
 imgs = imgs[file.exists(imgs) & file.info(imgs)$size > 0]
 
 # Define UI
@@ -61,7 +61,7 @@ server = function(input, output, session) {
   observeEvent(input[["good"]], {
     i = index()
     dt[i, user_quality := "good"]
-    if(index()+1 > length(imgs)) info(dt)
+    #if(index()+1 > length(imgs)) info(dt)
     index(min(index()+1, length(imgs)))
     output$table = renderDataTable(dt,
                                    rownames = FALSE,
@@ -73,7 +73,7 @@ server = function(input, output, session) {
   observeEvent(input[["bad"]], {
     i = index()
     dt[i, user_quality := "bad"]
-    if(index()+1 > length(imgs)) info(dt)
+    #if(index()+1 > length(imgs)) info(dt)
     index(min(index()+1, length(imgs)))
     output$table = renderDataTable(dt,
                                    rownames = FALSE,
@@ -84,7 +84,7 @@ server = function(input, output, session) {
   observeEvent(input[["intermediate"]], {
     i = index()
     dt[i, user_quality := "intermediate"]
-    if(index()+1 > length(imgs)) info(dt)
+    #if(index()+1 > length(imgs)) info(dt)
     index(min(index()+1, length(imgs)))
     output$table = renderDataTable(dt,
                                    rownames = FALSE,
@@ -94,7 +94,7 @@ server = function(input, output, session) {
   observeEvent(input[["na"]], {
     i = index()
     dt[i, user_quality := "NA"]
-    if(index()+1 > length(imgs)) info(dt)
+    #if(index()+1 > length(imgs)) info(dt)
     index(min(index()+1, length(imgs)))
     output$table = renderDataTable(dt,
                                    rownames = FALSE,

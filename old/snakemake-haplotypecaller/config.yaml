@@ -1,0 +1,3 @@
+indir: "/mnt/AchTeraD/data/BICRO229/NZ74_30bp/bamfiles/"
+outdir: "/mnt/AchTeraD/data/BICRO229/NZ74_30bp/vcffiles/"
+gatk: "/home/luukharbers/gatk-4.2.0.0/gatk"

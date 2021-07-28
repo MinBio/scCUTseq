@@ -5,18 +5,19 @@ import pandas as pd
 configfile: "config.yaml"
 
 # Specify samples
-sample = config['samplename']
+samples = glob.glob(config['indir'] + "*R1.fastq.gz")
+
+# Get basename for each sample and split after R1 suffix
+samples = [os.path.basename(sample).split("_R1", 1)[0] for sample in samples]
 
 # Rule specifying output files
 rule all:
     input:
-        expand(config['output'] + "bamfiles/{bc}.dedup_q30.bam",
-            bc = bc.iloc[:,0]),
-        expand(config['output'] + "bamfiles/{bc}.dedup_q30.bam.bai",
-            bc = bc.iloc[:,0]),
-        config['output'] + config['samplename'] + "_log.txt",
-        config['output'] + config['samplename'] + "_all.tsv",
-        config['output'] + config['samplename'] + "_dedup.tsv"
+        expand(config['outdir'] + "bamfiles/{sample}.dedup.bam",
+            sample = samples),
+        expand(config['outdir'] + "bamfiles/{sample}.dedup.bam.bai",
+            sample = samples),
+        config['outdir'] + "metrics.tsv"
 
 
 
@@ -27,11 +28,11 @@ if config['paired']:
     rule bwa:
         input:
             ref=config['ref'],
-            fastq1=config['input'] + sample + "_R1.fastq.gz",
-            fastq2=config['input'] + sample + "_R2.fastq.gz"
+            fastq1=config['indir'] + "{sample}_R1.fastq.gz",
+            fastq2=config['indir'] + "{sample}_R2.fastq.gz",
         output:
-            bam=temp(config['output'] + "{bc}.bam"),
-            bai=temp(config['output'] + "{bc}.bam.bai")
+            bam=temp(config['outdir'] + "bamfiles/{sample}.bam"),
+            bai=temp(config['outdir'] + "bamfiles/{sample}.bam.bai")
         params:
             rg=r"@RG\tID:{sample}\tSM:{sample}\tPL:ILLUMINA"
         threads: config['threads']
@@ -45,27 +46,37 @@ else:
     rule bwa:
         input:
             ref=config['ref'],
-            fastq=config['output'] + "demultiplexed/{bc}.trimmed.fastq.gz"
+            fastq=config['indir'] + "{sample}_R1.fastq.gz",
         output:
-            bam=temp(config['output'] + "bamfiles/{bc}.bam"),
-            bai=temp(config['output'] + "bamfiles/{bc}.bam.bai")
+            bam=temp(config['outdir'] + "bamfiles/{sample}.bam"),
+            bai=temp(config['outdir'] + "bamfiles/{sample}.bam.bai")
         params:
-            rg=r"@RG\tID:{bc}\tSM:{bc}\tPL:ILLUMINA"
+            rg=r"@RG\tID:{sample}\tSM:{sample}\tPL:ILLUMINA"
         threads: config['threads']
         shell:
             "bwa mem -M -t {threads} -R '{params.rg}' {input} | "
             "samtools sort -o {output.bam} && "
             "samtools index -@ {threads} {output.bam}"
 
-
+# Dedup
+rule deduplication:
+    input:
+        config['outdir'] + "bamfiles/{sample}.bam"
+    output:
+        bam=config['outdir'] + "bamfiles/{sample}.dedup.bam",
+        bai=config['outdir'] + "bamfiles/{sample}.dedup.bam.bai",
+        metrics=config['outdir'] + "bamfiles/{sample}.dedup.metrics"
+    threads: 16
+    shell:
+        "gatk MarkDuplicates -I {input} -O {output.bam} -M {output.metrics}&& samtools index {output.bam}"
 
 # QC post-dedup
 rule aflred:
     input:
-        bam=config['output'] + "bamfiles/{bc}.dedup_q30.bam",
+        bam=config['outdir'] + "bamfiles/{sample}.dedup.bam",
         ref=config['ref']
     output:
-        temp(config['output'] + "bamfiles/{bc}.dedup.tsv.gz")
+        temp(config['outdir'] + "bamfiles/{sample}.dedup.tsv.gz")
     shell:
         config['alfred'] + " qc -r {input.ref} -o {output} "
         "{input.bam}"
@@ -73,20 +84,15 @@ rule aflred:
 # QC summary
 rule qc:
     input:
-        expand(config['output'] + "bamfiles/{bc}.all.tsv.gz",
-            bc = bc.iloc[:,0]),
-        expand(config['output'] + "bamfiles/{bc}.dedup.tsv.gz",
-            bc = bc.iloc[:,0])
+        expand(config['outdir'] + "bamfiles/{sample}.dedup.tsv.gz",
+            sample = samples)
     output:
-        protected(config['output'] + config['samplename'] + "_all.tsv"),
-        protected(config['output'] + config['samplename'] + "_dedup.tsv")
+        protected(config['outdir'] + "metrics.tsv")
     params:
-        directory=config['output'],
-        out=config['output'] + config['samplename'] + "_"
+        directory=config['outdir'],
+        out=config['outdir'] + "metrics.tsv"
     shell:
         """
-        zgrep ^ME {params.directory}bamfiles/*all.tsv.gz | cut -f 2- | \\
-        sed -n '1p;0~2p' > {params.out}all.tsv
         zgrep ^ME {params.directory}bamfiles/*dedup.tsv.gz | cut -f 2- | \\
-        sed -n '1p;0~2p' > {params.out}dedup.tsv
+        sed -n '1p;0~2p' > {params.out}
         """

@@ -1,12 +1,12 @@
 # Render markdown file with custom params
 
 params = list(basedir = "/mnt/AchTeraD/data/",
-              run = "BICRO284",
+              run = "scCUTseq_turin1",
               extra_id = "",
-              run_description = "scCUTseq on Prostate (P6) and BRCA1",
-              libraries = c("NZ231", "NZ249", "MS159"),
-              library_description = c("scCUTseq on Prostate P6L3C3", "scCUTseq on Breast cancer", "scCUTseq on Prostate P6L3C1"),
-              binsizes = c("500000"))
+              run_description = "scCUTseq performed in Turin",
+              libraries = c("EB1", "EB2"),
+              library_description = c("scCUTseq performed in Turin lib1", "scCUTseq performed in Turin lib2"),
+              binsizes = c("1000000", "500000"))
 
 
 rmarkdown::render(
@@ -15,3 +15,4 @@ rmarkdown::render(
                        params$run, params$extra_id, "-sequence_report.html"),
   params = params
 )
+  

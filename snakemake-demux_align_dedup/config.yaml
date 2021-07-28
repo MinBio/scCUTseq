@@ -1,8 +1,0 @@
-input: "/mnt/AchTeraD/data/BICRO233/fastq/"
-samplename: "NZ85_S1_small"
-output: "/mnt/AchTeraD/data/BICRO233/NZ85_old_small/"
-ref: "/mnt/AchTeraD/Documents/references/hg19/hg19.fa"
-refname: 'hg19'
-bc: "/mnt/AchTeraD/data/BICRO205+206/MS18_barcodes.txt"
-threads: 32
-demux: "/home/luukharbers/BBMap_38.76/bbmap/demuxbyname.sh"

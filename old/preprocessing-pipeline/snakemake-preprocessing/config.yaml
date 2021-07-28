@@ -1,0 +1,27 @@
+# Sample related
+input: "/mnt/AchTeraD/data/BICRO229/fastq/"
+samplename: "NZ74"
+output: "/mnt/AchTeraD/data/BICRO229/NZ74_50bp/"
+paired: False
+lanesplit: True
+lanes: ["L001", "L002", "L003", "L004"] # Might need to change for NextSeq 2000 vs Nextseq500/550 or Novaseq
+
+# Semi-static
+bc: "/mnt/AchTeraD/data/96_NlaIII-barcodes.txt"
+cutsites: "/mnt/AchTeraD/Documents/Projects/scCUTseq/cutsite-distribution/hg19-cutsites_fixed.bed"
+mismatches: 1
+barcode_length: 8
+read_length: 76 # After removing barcodes etc 56 // 130
+
+# References
+ref: "/mnt/AchTeraD/Documents/references/hg19/hg19.fa"
+refname: 'hg19'
+
+# Tools
+demux: "python /mnt/AchTeraD/Documents/Projects/scCUTseq/Scripts/preprocessing-pipeline/demultiplex/demultiplex_withcython.py"
+combineLogs: "/mnt/AchTeraD/Documents/Projects/scCUTseq/Scripts/preprocessing-pipeline/combine_logfiles.R"
+getReads: "/mnt/AchTeraD/Documents/Projects/scCUTseq/Scripts/preprocessing-pipeline/Extract_readnames_nearCutsites.R"
+alfred: "/home/luukharbers/alfred/bin/alfred"
+
+# Threads
+threads: 32

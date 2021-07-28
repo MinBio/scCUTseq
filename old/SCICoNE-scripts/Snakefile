@@ -1,0 +1,54 @@
+configfile: "config.yaml"
+
+sample=config['samplename']
+outdir="/mnt/AchTeraD/Documents/Projects/scCUTseq/SCICoNE-testoutput/snake/"
+
+matrix=config['matrix']
+n_bins = 5439
+n_cells = 96
+window_size=10
+verbosity=2
+threshold=3
+
+#bins
+breakpoints_bin=config['breakpoints_bin']
+
+rule breakpoint_detection:
+    # --n_bins 18175 --n_cells 260 --postfix vancouver --window_size 10 --verbosity 3 --threshold 3 --d_matrix_file /Users/mtuncel/git_repos/sc-dna/data/adi_steif/read_count_tables/SA501X3F_corr_amp.txt
+    params:
+        binary = breakpoints_bin,
+        n_bins = n_bins,
+        n_cells = n_cells,
+        postfix = sample,
+        window_size = window_size,
+        verbosity = verbosity,
+        threshold = threshold
+    input:
+        d_mat = matrix
+    output:
+        region_sizes = outdir + '/' + sample + "_segmented_region_sizes.txt"
+    shell:
+        "{params.binary} --n_bins {params.n_bins} --n_cells {params.n_cells} --postfix {params.postfix} --d_matrix_file {input.d_mat};\
+        mv {params.postfix}_segmented_region_sizes.txt {output.region_sizes}"
+
+'''
+rule breakpointDetection:
+    input:
+        matrix
+    output:
+        outdir + "/" + sample + "_segmented_region_sizes.txt"
+    params:
+        n_bins = n_bins,
+        n_cells = n_cells,
+        postfix = sample,
+        window_size = window_size,
+        verbosity = 1,
+        threshold = threshold
+    shell:
+        """
+        {breakpoints_bin} --d_matrix_file {input} --n_bins {params.n_bins} \
+        --n_cells {params.n_cells} --window_size {params.window_size} \
+        --threshold {params.threshold} --verbosity={params.verbosity} \
+        --postfix {params.postfix}
+        """
+'''

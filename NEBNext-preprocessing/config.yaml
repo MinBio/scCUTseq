@@ -1,7 +1,6 @@
 # Sample related
-input: "/mnt/AchTeraD/data/BICRO282/fastq/"
-samplename: "NZ272_S1"
-output: "/mnt/AchTeraD/data/BICRO281/NZ272/"
+indir: "/mnt/AchTeraD/data/BICRO229/fastq/NEB/"
+outdir: "/mnt/AchTeraD/data/BICRO229/NEBNext/"
 paired: False
 
 # References

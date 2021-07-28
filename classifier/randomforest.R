@@ -54,3 +54,9 @@ imp_plt = ggplot(var_imps, aes(x = MeanDecreaseAccuracy, y = feature)) +
 
 save_and_plot(imp_plt, "/mnt/AchTeraD/Documents/Projects/scCUTseq/Plots/classifier/feature_importance",
               width = 6, height = 8)
+
+# ROCR measurements
+pred = prediction(prediction$good, prediction$observation)
+f_measure = performance(pred, "f")
+f_measure = max(f_measure@y.values[[1]])
+

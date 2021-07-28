@@ -1,0 +1,45 @@
+import glob, os
+
+# Specify config file
+configfile: "config.yaml"
+
+# Specify samples
+samples = glob.glob(config['indir'] + "*.bam")
+samples = [os.path.basename(os.path.splitext(sample)[0]) for sample in samples]
+
+# Rule specifying output files
+rule all:
+	input:
+		expand(config['outdir'] + "{sample}/filtered-{sample}.vcf.gz", 
+			sample = samples)
+
+# Rule for standard snp calling using mutect2
+rule mutect2:
+	input:
+		bam=config['indir'] + "{sample}.bam",
+		ref="/mnt/AchTeraD/Documents/references/hg19/hg19.fa",
+		germ="/mnt/AchTeraD/Documents/references/vcf-files/"
+		"af-only-gnomad.raw.sites-b37.vcf.gz"
+	output:
+		vcf=config['outdir'] + "{sample}/unfiltered-{sample}.vcf.gz",
+		f1r2=config['outdir'] + "{sample}/f1r2.tar.gz"
+	log:
+		"/mnt/AchTeraD/logs/mutect2_logs/{sample}.log"
+	threads: 2
+	shell:
+		"gatk Mutect2 -I {input.bam} -R {input.ref} -O {output.vcf} " 
+		"--f1r2-tar-gz {output.f1r2} --germline-resource {input.germ}"
+
+# Rule to filter Mutect2 calls
+rule filtercalls:
+	input:
+		vcf=config['outdir'] + "{sample}/unfiltered-{sample}.vcf.gz",
+		ref="/mnt/AchTeraD/Documents/references/hg19/hg19.fa"
+	output:
+		config['outdir'] + "{sample}/filtered-{sample}.vcf.gz"
+	threads: 2
+	shell:
+		"gatk FilterMutectCalls -V {input.vcf} -R {input.ref} "
+		"-O {output}"
+
+

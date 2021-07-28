@@ -1,0 +1,365 @@
+* commit 23cc68ff895aabb59357e0e0d334c8019dcbb481
+| Author: ljwharbers <l.j.w.harbers@gmail.com>
+| Date:   Fri Mar 5 11:18:29 2021 +0100
+| 
+|     minor restructuring
+| 
+* commit 772a8032f68409e7edc8f1c2ec7e2f14b5621358
+| Author: ljwharbers <l.j.w.harbers@gmail.com>
+| Date:   Thu Feb 25 14:24:20 2021 +0100
+| 
+|     added script to prepare binfiles and for multipcf segmentation
+| 
+* commit dedfc89876c2cbaefa6c7c7c48c67936c247a43b
+| Author: ljwharbers <l.j.w.harbers@gmail.com>
+| Date:   Thu Feb 25 14:23:54 2021 +0100
+| 
+|     added script for sequencing QC reporting
+| 
+* commit 2c60caed7f794ce5b0c2ddab758af4e504049272
+| Author: ljwharbers <l.j.w.harbers@gmail.com>
+| Date:   Thu Feb 25 14:23:44 2021 +0100
+| 
+|     added prostate analysis scripts
+| 
+* commit 4edd7a1168e47001aeb2d4ddde49ae860f8d4c9a
+| Author: ljwharbers <l.j.w.harbers@gmail.com>
+| Date:   Thu Feb 25 14:23:23 2021 +0100
+| 
+|     added breast cancer phylogeny analysis scripts
+| 
+* commit 77409c1f04fa121623fc0dfeb0dcc43eaa542c71
+| Author: ljwharbers <l.j.w.harbers@gmail.com>
+| Date:   Thu Feb 25 14:23:06 2021 +0100
+| 
+|     added tk6 scripts
+| 
+* commit 94e957540df8d0171ee0c77f8646d07a36dc74c7
+| Author: ljwharbers <l.j.w.harbers@gmail.com>
+| Date:   Mon Jan 11 00:11:53 2021 +0100
+| 
+|     fixed thread call
+| 
+* commit dc139a780f1dace131c28776bef4b517c853a009
+| Author: ljwharbers <l.j.w.harbers@gmail.com>
+| Date:   Mon Jan 11 00:10:11 2021 +0100
+| 
+|     fixed pigz rule
+| 
+* commit 6ca438bae65745b29c0dc2275e6951b29a02aee8
+| Author: ljwharbers <l.j.w.harbers@gmail.com>
+| Date:   Mon Jan 11 00:07:02 2021 +0100
+| 
+|     fixed indentation
+| 
+* commit 44f65d706280361b611409c9007b25506d2fed00
+| Author: ljwharbers <l.j.w.harbers@gmail.com>
+| Date:   Sun Jan 10 12:08:04 2021 +0100
+| 
+|     deleted unused files
+| 
+* commit 0c6e7e8837182f3d50fdfdb7ff1ae23d20efe312
+| Author: ljwharbers <l.j.w.harbers@gmail.com>
+| Date:   Sun Jan 10 12:07:35 2021 +0100
+| 
+|     combined two rules and explicitely state thread usage
+| 
+* commit 477c86cb93578868398e039f8d0a8b0f8982fe14
+| Author: ljwharbers <l.j.w.harbers@gmail.com>
+| Date:   Wed Dec 23 12:06:11 2020 +0100
+| 
+|     fix for split paired-end sequencing
+| 
+* commit 93b61ca76418f2197b154d9c972a3025295a6173
+| Author: ljwharbers <l.j.w.harbers@gmail.com>
+| Date:   Wed Dec 23 09:46:10 2020 +0100
+| 
+|     minor changes and additions
+| 
+* commit 51a22e9a0aeb2fdd90f810672824813bb46f19c1
+| Author: ljwharbers <l.j.w.harbers@gmail.com>
+| Date:   Wed Dec 23 09:45:28 2020 +0100
+| 
+|     added mouse specific files and make scripts mouse compatible
+| 
+* commit 81a124ef26c410d82e36134cee4481a7a7a40f62
+| Author: ljwharbers <l.j.w.harbers@gmail.com>
+| Date:   Mon Nov 16 10:25:22 2020 +0100
+| 
+|     deleted unused script
+| 
+* commit a1862bc59812c47487219a77601fb650a3c8fcaf
+| Author: ljwharbers <l.j.w.harbers@gmail.com>
+| Date:   Mon Nov 16 10:25:02 2020 +0100
+| 
+|     added manual normalization of certain regions
+| 
+* commit 0ed9326f7ff52da7134195343f3d3f456bf2d9da
+| Author: ljwharbers <l.j.w.harbers@gmail.com>
+| Date:   Mon Nov 16 10:24:37 2020 +0100
+| 
+|     minor modifications to preprocessing pipeline
+| 
+* commit efa6280814e6d0edc6e21c2c2a29d18ab6ce2d73
+| Author: ljwharbers <l.j.w.harbers@gmail.com>
+| Date:   Mon Nov 16 10:24:18 2020 +0100
+| 
+|     minor modifications to QC
+| 
+* commit 8f58eef43f305c8eed4925164d15087d175a6a33
+| Author: ljwharbers <l.j.w.harbers@gmail.com>
+| Date:   Mon Nov 16 10:24:00 2020 +0100
+| 
+|     put 'old' scripts in separate folder
+| 
+* commit d1d096e99dfe71d15bce08edd166025949885c39
+| Author: ljwharbers <l.j.w.harbers@gmail.com>
+| Date:   Mon Nov 16 10:23:35 2020 +0100
+| 
+|     Added scripts for plotting manuscript figures
+| 
+* commit 521f3cf059eb8b2b485d8575beedb4e635a2754b
+| Author: ljwharbers <l.j.w.harbers@gmail.com>
+| Date:   Sun Nov 15 13:35:00 2020 +0100
+| 
+|     added files/scripts for CNA calling pipeline
+| 
+* commit 9709c5098a3803dd3486a08f76c8a8c130dcf700
+| Author: ljwharbers <l.j.w.harbers@gmail.com>
+| Date:   Wed Oct 14 14:43:19 2020 +0200
+| 
+|     fixed parameter error in demultiplexing
+| 
+* commit 64e88e9c62dd5d037e2ac72dcd348886fb927612
+| Author: ljwharbers <l.j.w.harbers@gmail.com>
+| Date:   Wed Oct 14 14:42:28 2020 +0200
+| 
+|     fixed bug related to paired-end
+| 
+* commit e447e642959673d3a167f71c6c8e99adb806c492
+| Author: ljwharbers <l.j.w.harbers@gmail.com>
+| Date:   Thu Oct 1 10:22:19 2020 +0200
+| 
+|     bugfixes paired-end pipeline
+| 
+* commit 790bf12fab3360ac01f580d470c320395ff74b01
+| Author: ljwharbers <l.j.w.harbers@gmail.com>
+| Date:   Fri Sep 18 16:56:56 2020 +0200
+| 
+|     mass commit
+| 
+* commit 9e982a0d49cbd84ec684e8158d0221c0489cf3fc
+| Author: ljwharbers <l.j.w.harbers@gmail.com>
+| Date:   Tue Jul 28 23:59:24 2020 +0200
+| 
+|     slight modification custom genomewideheatmap
+| 
+* commit 41f9cc88898f298f1d97ad29c1c2e74e1f2c341b
+| Author: ljwharbers <l.j.w.harbers@gmail.com>
+| Date:   Tue Jul 28 23:59:05 2020 +0200
+| 
+|     minor edits
+| 
+* commit dd18133cee9337cf061c8a5615f6ea60b0bf8db1
+| Author: ljwharbers <l.j.w.harbers@gmail.com>
+| Date:   Tue Jul 28 23:58:43 2020 +0200
+| 
+|     added gatk env yaml
+| 
+* commit d2a7fbb0df833c9c12b1f56f90fa0354422e033c
+| Author: ljwharbers <l.j.w.harbers@gmail.com>
+| Date:   Tue Jul 28 23:58:30 2020 +0200
+| 
+|     added scripts for new preprocessing pipeline
+| 
+* commit d3ddbe50c0c552d5b95ec50fd118893125d4fa92
+| Author: ljwharbers <l.j.w.harbers@gmail.com>
+| Date:   Wed Jul 15 09:42:38 2020 +0200
+| 
+|     minor adjustment in main aneufinder script
+| 
+* commit 5c60c3bc7c819d9c56583560e193950a1c662ab7
+| Author: ljwharbers <l.j.w.harbers@gmail.com>
+| Date:   Wed Jul 15 09:42:07 2020 +0200
+| 
+|     script for calculation of pairwise pearson correlation
+| 
+* commit ac7b00897a557aac058c86606de2abd92dd4424a
+| Author: ljwharbers <l.j.w.harbers@gmail.com>
+| Date:   Wed Jul 15 09:41:53 2020 +0200
+| 
+|     added custom genomewide-heatmap script
+| 
+* commit 30cee83eecc2e8d0d4ee2974b616d69b47db1d28
+| Author: ljwharbers <l.j.w.harbers@gmail.com>
+| Date:   Wed Jul 15 09:41:41 2020 +0200
+| 
+|     adjusted multiplexed QC plotting
+| 
+* commit 5a9a4b216e77536916ad0dc728ebbb059607c530
+| Author: ljwharbers <l.j.w.harbers@gmail.com>
+| Date:   Wed Jul 15 09:41:08 2020 +0200
+| 
+|     minor snakemake changes
+| 
+* commit 8d07296f0c496ed5090864fc2b9e522d89fec13c
+| Author: ljwharbers <l.j.w.harbers@gmail.com>
+| Date:   Wed Jul 15 09:40:47 2020 +0200
+| 
+|     deleted redundant files
+| 
+* commit 7bf2eeacb065cfb75a8819f31293795c128f9384
+| Author: ljwharbers <l.j.w.harbers@gmail.com>
+| Date:   Fri Jun 12 11:44:17 2020 +0200
+| 
+|     added R files into .gitignore
+| 
+* commit 2da4d5f51ee6b2bab697f4577e2c083cb1411491
+| Author: ljwharbers <l.j.w.harbers@gmail.com>
+| Date:   Fri Jun 12 11:43:32 2020 +0200
+| 
+|     added additional QC scripts
+| 
+* commit 3634ea9212a4aa4a0b049e4a68d64cc589bdc8a5
+| Author: ljwharbers <l.j.w.harbers@gmail.com>
+| Date:   Fri Jun 12 11:42:30 2020 +0200
+| 
+|     updated multiplexed QC script for automation
+| 
+* commit 2443fd5768174fb32f28fa799151783f0f7a88e4
+| Author: ljwharbers <l.j.w.harbers@gmail.com>
+| Date:   Fri Jun 12 11:42:08 2020 +0200
+| 
+|     deleted old QC script
+| 
+* commit 825860975735966322f801300959adbe25340664
+| Author: ljwharbers <l.j.w.harbers@gmail.com>
+| Date:   Fri Jun 12 11:41:31 2020 +0200
+| 
+|     updated script to find cutsites in a fasta file
+| 
+* commit 16593d08eb617fc6aa588fc61daf1ac6f9c61263
+| Author: ljwharbers <l.j.w.harbers@gmail.com>
+| Date:   Fri Jun 12 11:41:18 2020 +0200
+| 
+|     minor input changes
+| 
+* commit 01e1b73a945df1450b0b6d1162988599ae607753
+| Author: Luuk Harbers <l.j.w.harbers@gmail.com>
+| Date:   Mon May 11 14:01:49 2020 +0200
+| 
+|     cnv calling snakemake pipeline added
+| 
+* commit 9d29986fce52bab30840481f2be9ad430fd12b34
+| Author: Luuk Harbers <l.j.w.harbers@gmail.com>
+| Date:   Mon May 11 14:01:33 2020 +0200
+| 
+|     readQC from fastq to final bamfile
+| 
+* commit f9a901071e45b8293a36afdb427009f1faf0014b
+| Author: Luuk Harbers <l.j.w.harbers@gmail.com>
+| Date:   Mon May 11 14:00:47 2020 +0200
+| 
+|     python script to find cutsites in sequences
+| 
+* commit cf2ae37205f69debca57a1364c5ef7ef97983797
+| Author: Luuk Harbers <l.j.w.harbers@gmail.com>
+| Date:   Mon May 11 14:00:22 2020 +0200
+| 
+|     scripts for CNA analysis
+| 
+* commit 591f9960909021fef0fb54152a21aef078348c59
+| Author: Luuk Harbers <l.j.w.harbers@gmail.com>
+| Date:   Mon May 11 14:00:03 2020 +0200
+| 
+|     config changes
+| 
+* commit f9240c4c5c2196e4d9f04b5b88269664cd9d5732
+| Author: Luuk Harbers <l.j.w.harbers@gmail.com>
+| Date:   Mon May 11 13:59:57 2020 +0200
+| 
+|     minor adjustments
+| 
+* commit 82f23b2fd23a35dd4ccd59996340a0a9f23567b5
+| Author: Luuk Harbers <l.j.w.harbers@gmail.com>
+| Date:   Fri Apr 3 14:47:36 2020 +0200
+| 
+|     fixed sed command
+| 
+* commit a92f8978cbc1d3fa44585e8fff87fec4a2b0c0a6
+| Author: Luuk Harbers <l.j.w.harbers@gmail.com>
+| Date:   Fri Apr 3 12:13:51 2020 +0200
+| 
+|     added bugfixes
+| 
+* commit 68f750c4d8f25529fe24121ab5029e45c5de9208
+| Author: Luuk Harbers <l.j.w.harbers@gmail.com>
+| Date:   Thu Apr 2 22:18:34 2020 +0200
+| 
+|     gitignore addition
+| 
+* commit 5f5f77dfa1069a50127277e97a29ffa3c5e13d2b
+| Author: Luuk Harbers <l.j.w.harbers@gmail.com>
+| Date:   Thu Apr 2 22:17:57 2020 +0200
+| 
+|     time to deprecate this one soon
+| 
+* commit fbc95403358f614144c811716c3baa191aa84d40
+| Author: Luuk Harbers <l.j.w.harbers@gmail.com>
+| Date:   Thu Apr 2 22:17:44 2020 +0200
+| 
+|     minor aneufinder changes
+| 
+* commit 5f4d5f72d94a5c74b2d64072f7d6f67589214088
+| Author: Luuk Harbers <l.j.w.harbers@gmail.com>
+| Date:   Thu Apr 2 22:17:22 2020 +0200
+| 
+|     added gitignore and made snakemake script for preprocessing
+| 
+* commit 6114b795eb4a56d1b6060f376d117a4f1195b67c
+| Author: Luuk Harbers <l.j.w.harbers@gmail.com>
+| Date:   Tue Mar 17 18:50:01 2020 +0100
+| 
+|     removed qdnaseq from folder
+| 
+* commit f3d4c14011d15faeb1f56cbecd8ae23ff90f25e5
+| Author: Luuk Harbers <l.j.w.harbers@gmail.com>
+| Date:   Tue Mar 17 18:46:17 2020 +0100
+| 
+|     fixed failed mv command destroying files
+| 
+* commit 053582470a8a852d7a8f0d49ec3c88da6324878c
+| Author: Luuk Harbers <l.j.w.harbers@gmail.com>
+| Date:   Tue Mar 17 18:37:56 2020 +0100
+| 
+|     added aneufinder config file
+| 
+* commit cea85a5083d9999f3540431eebf19fe0f6c88416
+| Author: Luuk Harbers <l.j.w.harbers@gmail.com>
+| Date:   Tue Mar 17 15:45:21 2020 +0100
+| 
+|     major changes
+| 
+* commit 1237291ab71e1d96a933954bd60a84c2de8efd3a
+| Author: Luuk Harbers <l.j.w.harbers@gmail.com>
+| Date:   Thu Feb 20 11:19:25 2020 +0100
+| 
+|     changes in help
+| 
+* commit 59a0b8031ebd780f63c259b4ed1e35a96139d4d0
+| Author: Luuk Harbers <l.j.w.harbers@gmail.com>
+| Date:   Thu Feb 20 10:21:39 2020 +0100
+| 
+|     minor change in demux_align_dedup_short.sh script
+| 
+* commit 7e404d5cf5f755840aeb7d202c8574865d1521d3
+| Author: ljwharbers <40829819+ljwharbers@users.noreply.github.com>
+| Date:   Thu Feb 20 10:19:19 2020 +0100
+| 
+|     Create README.md
+| 
+* commit eeadd19e7670db3e475dd5a5418ddcfb64ed74dc
+  Author: Luuk Harbers <l.j.w.harbers@gmail.com>
+  Date:   Thu Feb 20 10:06:45 2020 +0100
+  
+      initial preprocessing pipeline commit

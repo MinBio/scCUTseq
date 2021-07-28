@@ -1,0 +1,20 @@
+## Directories
+indir: "/mnt/AchTeraD/data/BICRO241/MS72/bamfiles/"
+outdir: "/mnt/AchTeraD/Documents/Projects/scCUTseq/data/hmmcopy-output/BICRO241/MS72/"
+
+## reference files
+mappability: "/mnt/AchTeraD/Documents/references/hg19/hg19_56.bw"
+reference: "/mnt/AchTeraD/Documents/references/hg19/hg19.fa"
+ref: "hg19"
+
+binsize: "500"
+chroms: ["1", "2", "3", "4", "5", "6", "7", "8",
+         "9", "10","11", "12", "13", "14", "15",
+         "16", "17", "18", "19", "20", "21", "22", "X", "Y"]
+
+## Threads
+threads: 32
+
+## Bin
+hmmutil: "/home/luukharbers/hmmcopy_utils/bin/"
+hmmcopy: "/mnt/AchTeraD/Documents/Projects/scCUTseq/Scripts/hmmcopy/run_hmmcopy.R"

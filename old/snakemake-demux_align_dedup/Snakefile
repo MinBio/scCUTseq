@@ -1,0 +1,152 @@
+import glob, os
+import pandas as pd
+
+# Specify config file
+configfile: "config.yaml"
+
+# Specify samples
+bc = pd.read_csv(config['bc'], sep = ",")
+sample = config['samplename']
+
+# Rule specifying output files
+rule all:
+	input:
+		expand(config['output'] + "bamfiles/{bc}.dedup_q30.bam",
+			bc = bc.BARCODE),
+		expand(config['output'] + "bamfiles/{bc}.dedup_q30.bam.bai",
+			bc = bc.BARCODE),
+		config['output'] + config['samplename'] + "_all.tsv",
+		config['output'] + config['samplename'] + "_dedup.tsv"
+
+
+# Rule for extracting barcodes from read and appending them to head
+rule extract:
+	input:
+		fastq=config['input'] + config['samplename'] + "_R1.fastq.gz",
+		barcodes=config['bc']
+	output:
+		fastq=config['output'] + "extracted/" + sample +
+		"_extracted.fastq.gz",
+		log=config['output'] + "extracted/" + sample +
+		"_extracted.log"
+	params:
+		bc=lambda wildcards: "'(?P<umi_1>.{8})(?P<cell_1>.{8})CATG{s<=1}'"
+	shell:
+		"umi_tools extract -I {input.fastq} -S {output.fastq} -L {output.log} "
+		"--extract-method=regex --bc-pattern={params.bc} "
+		"--filter-cell-barcode --whitelist {input.barcodes}"
+
+# Rule for demultiplexing fastq
+rule demux:
+	input:
+		config['output'] + "extracted/" + sample +
+		"_extracted.fastq.gz"
+	output:
+		expand(config['output'] +
+			"demultiplexed/{bc}.fastq.gz", bc = bc.BARCODE)
+	params:
+		cmd=config['output'] +
+		"demultiplexed/\\%.\\fastq.gz",
+		path=config['demux']
+	shell:
+		"{params.path} in={input} out={params.cmd} delimiter=_ column=2 Xmx=20G"
+
+# Aligning
+rule bwa:
+	input:
+		ref=config['ref'],
+		fastq=config['output'] + "demultiplexed/{bc}.fastq.gz"
+	output:
+		temp(config['output'] + "bamfiles/{bc}.bam")
+	params:
+		rg=r"@RG\tID:{bc}\tSM:{bc}\tPL:ILLUMINA"
+	threads: config['threads']
+	shell:
+		"bwa mem -M -t {threads} -R '{params.rg}' {input} | "
+        "samtools view -bS - > {output}"
+
+# Sorting
+rule sorting:
+    input:
+        config['output'] + "bamfiles/{bc}.bam"
+    output:
+        temp(config['output'] + "bamfiles/{bc}.sorted.bam")
+    threads: config['threads']
+    shell:
+        "samtools sort -@ {threads} {input} -o {output}"
+
+# Index
+rule index1:
+	input:
+		config['output'] + "bamfiles/{bc}.sorted.bam"
+	output:
+		config['output'] + "bamfiles/{bc}.sorted.bam.bai"
+	threads: config['threads']
+	shell:
+		"samtools index -@ {threads} {input}"
+
+# QC pre-dedup
+rule aflred_pre:
+	input:
+		bam=config['output'] + "bamfiles/{bc}.sorted.bam",
+		ref=config['ref']
+	output:
+		config['output'] + "bamfiles/{bc}.all.tsv.gz"
+	shell:
+		"/home/luukharbers/alfred/bin/alfred qc -r {input.ref} -o {output} "
+		"{input.bam}"
+
+# Dedup
+rule deduplication:
+    input:
+        bam=config['output'] + "bamfiles/{bc}.sorted.bam",
+        index=config['output'] + "bamfiles/{bc}.sorted.bam.bai"
+    output:
+        bam=protected(config['output'] + "bamfiles/{bc}.dedup_q30.bam"),
+        log=config['output'] + "bamfiles/{bc}.log"
+    threads: 4
+    shell:
+        "umi_tools dedup -I {input.bam} -S {output.bam} -L {output.log} "
+        "--mapping-quality 30"
+
+# Index
+rule index2:
+	input:
+		config['output'] + "bamfiles/{bc}.dedup_q30.bam"
+	output:
+		config['output'] + "bamfiles/{bc}.dedup_q30.bam.bai"
+	threads: config['threads']
+	shell:
+		"samtools index -@ {threads} {input}"
+
+# QC post-dedup
+rule aflred_post:
+	input:
+		bam=config['output'] + "bamfiles/{bc}.dedup_q30.bam",
+		ref=config['ref']
+	output:
+		config['output'] + "bamfiles/{bc}.dedup.tsv.gz"
+	shell:
+		"/home/luukharbers/alfred/bin/alfred qc -r {input.ref} -o {output} "
+		"{input.bam}"
+
+# QC summary
+rule qc:
+	input:
+		expand(config['output'] + "bamfiles/{bc}.all.tsv.gz",
+			bc = bc.BARCODE),
+		expand(config['output'] + "bamfiles/{bc}.dedup.tsv.gz",
+			bc = bc.BARCODE)
+	output:
+		config['output'] + config['samplename'] + "_all.tsv",
+		config['output'] + config['samplename'] + "_dedup.tsv"
+	params:
+		directory=config['output'],
+		out=config['output'] + config['samplename'] + "_"
+	shell:
+		"""
+		zgrep ^ME {params.directory}bamfiles/*all.tsv.gz | cut -f 2- | \\
+		sed -n '1p;0~2p' > {params.out}all.tsv
+		zgrep ^ME {params.directory}bamfiles/*dedup.tsv.gz | cut -f 2- | \\
+		sed -n '1p;0~2p' > {params.out}dedup.tsv
+		"""
