@@ -44,7 +44,7 @@ colors_vector = get_colors()
 
 # Load in profiles
 profiles = readRDS("/mnt/AchTeraD/Documents/Projects/scCUTseq/data/brca/brca2_nondiploid-HQ.rds")
-clones = fread("/mnt/AchTeraD/Documents/Projects/scCUTseq/data/brca/navin/brca1clones.tsv")
+clones = fread("/mnt/AchTeraD/Documents/Projects/scCUTseq/data/brca/navin/brca2clones.tsv")
 cosmic = fread("/mnt/AchTeraD/Documents/Projects/scCUTseq/data/genes/gene-census.tsv")
 
 # Make treedata_df and add diploid
